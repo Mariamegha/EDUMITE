@@ -223,7 +223,7 @@ export default function StaggeredMenu({ isOpen, onClose }: StaggeredMenuProps) {
 
         {/* Footer */}
         <div className="staggered-menu-footer">
-          <p className="footer-text">© 2024 Edura. Elevate Your Learning.</p>
+          <p className="footer-text">© 2024 Edumite. Elevate Your Learning.</p>
           <div className="footer-social">
             <a href="#" className="social-link" aria-label="Twitter">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">

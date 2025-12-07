@@ -42,7 +42,7 @@ Hello, \\\\${name}!\\\nWelcome to the Edura sandbox.\
 greet('Learner');`,
   python: `# Python Starter Code
 def greet(name: str) -> None:
-    print(f"Hello, {name}! Welcome to the Edura sandbox.")
+    print(f"Hello, {name}! Welcome to the Edumite sandbox.")
 
 greet("Learner")`,
   java: `// Java Starter Code
@@ -50,13 +50,13 @@ import java.util.*;
 
 public class Main {
   public static void main(String[] args) {
-    System.out.println("Hello from Edura IDE!");
+    System.out.println("Hello from Edumite IDE!");
   }
 }`,
   c: `#include <stdio.h>
 
 int main(void) {
-  printf("Hello from Edura IDE!\\n");
+  printf("Hello from Edumite IDE!\n");
   return 0;
 }`,
 };

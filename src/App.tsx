@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { TranslationProvider } from "@/components/TranslationProvider";
 import { Navbar } from "@/components/Navbar";
@@ -11,6 +11,7 @@ import NavbarGold from "@/components/NavbarGold";
 import DockNav from "@/components/DockNav";
 import { useUserStore } from "@/store/userStore";
 import { initializeAuth } from "@/services/authService";
+import { supabase } from "@/lib/supabase";
 
 import Landing from "./pages/Landing";
 import LandingGold from "./pages/LandingGold";
@@ -38,28 +39,119 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 }
 
-const App = () => {
+function AuthListener() {
+  const navigate = useNavigate();
+
   useEffect(() => {
     // Initialize auth state on app load
     initializeAuth();
-  }, []);
+
+    // Handle OAuth callback explicitly
+    const handleOAuthCallback = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      
+      if (accessToken) {
+        // Give Supabase time to process the callback
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          // Trigger auth initialization
+          await initializeAuth();
+        }
+      }
+    };
+
+    handleOAuthCallback();
+
+    // Listen for auth state changes (OAuth callback)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      
+      if (event === 'SIGNED_IN' && session) {
+        const userName = session.user.user_metadata?.name || 
+                         session.user.user_metadata?.full_name || 
+                         session.user.email?.split('@')[0] || 
+                         'User';
+
+        // Immediately update store and redirect - don't wait for profile
+        const userStoreData = {
+          name: userName,
+          email: session.user.email!,
+          xp: 0,
+          level: 1,
+          streak: 0,
+        };
+        
+        useUserStore.getState().login(session.user.email!, userName);
+        useUserStore.setState({
+          isAuthenticated: true,
+          user: userStoreData,
+        });
+        
+        // Navigate immediately
+        navigate('/dashboard', { replace: true });
+
+        // Fetch/create profile in background (don't block redirect)
+        setTimeout(async () => {
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            if (profile) {
+              useUserStore.setState({
+                user: {
+                  name: profile.name,
+                  email: profile.email,
+                  xp: profile.xp,
+                  level: profile.level,
+                  streak: profile.streak,
+                },
+              });
+            } else if (profileError?.code === 'PGRST116') {
+              await supabase
+                .from('users')
+                .insert({
+                  id: session.user.id,
+                  email: session.user.email!,
+                  name: userName,
+                  xp: 0,
+                  level: 1,
+                  streak: 0,
+                });
+            }
+          } catch (error) {
+            // Silent fail - user is already authenticated
+          }
+        }, 100);
+      } else if (event === 'SIGNED_OUT') {
+        useUserStore.getState().logout();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  return null;
+}
+
+function ConditionalLayout() {
+  const location = useLocation();
+  const hideNavbar = ['/', '/login', '/register'].includes(location.pathname);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TranslationProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-            <div className="flex min-h-screen flex-col bg-deepblack">
-              <NavbarGold />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<LandingGold />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route
+    <div className="flex min-h-screen flex-col bg-deepblack">
+      {!hideNavbar && <NavbarGold />}
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<LandingGold />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
                     path="/dashboard"
                     element={
                       <ProtectedRoute>
@@ -158,9 +250,24 @@ const App = () => {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
             </main>
-            <DockNav />
+            {!hideNavbar && <DockNav />}
           </div>
-        </BrowserRouter>
+  );
+}
+
+const App = () => {
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <TranslationProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AuthListener />
+              <ConditionalLayout />
+            </BrowserRouter>
           </TooltipProvider>
         </TranslationProvider>
       </ThemeProvider>

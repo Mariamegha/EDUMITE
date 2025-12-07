@@ -12,7 +12,7 @@ export default function StudyVR() {
   const user = useUserStore((state) => state.user);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const vrLink = 'https://framevr.io/edura';
+  const vrLink = 'https://framevr.io/edumite';
 
   const copyToClipboard = async () => {
     try {
@@ -141,7 +141,7 @@ export default function StudyVR() {
           <CardContent className="p-0">
             <div className="relative w-full bg-black rounded-b-lg overflow-hidden">
               <iframe
-                src="https://framevr.io/edura"
+                src="https://framevr.io/edumite"
                 className="w-full border-0"
                 allow="microphone; camera; fullscreen; autoplay"
                 allowFullScreen

@@ -41,8 +41,8 @@ export default function NavbarGold() {
         <div className="flex items-center justify-between">
           {/* LOGO */}
           <Link to="/" className="text-3xl font-black uppercase tracking-tighter transform hover:scale-105 transition-transform">
-            <span className="text-gold drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">Ed</span>
-            <span className="text-pink drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">ura</span>
+            <span className="text-gold drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">Edu</span>
+            <span className="text-pink drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">mite</span>
           </Link>
 
           {/* AUTH BUTTONS */}

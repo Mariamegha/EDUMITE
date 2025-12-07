@@ -47,7 +47,7 @@ export default function Register() {
     if (user) {
       toast({
         title: 'Account created!',
-        description: 'Welcome to Edura!',
+        description: 'Welcome to Edumite!',
       });
       navigate('/dashboard');
     }
@@ -64,8 +64,8 @@ export default function Register() {
         <div className="mb-8 text-center">
           <Link to="/" className="inline-flex items-center gap-2 text-4xl font-black uppercase">
             <Sparkles className="h-8 w-8 text-pink" />
-            <span className="text-gold">ED</span>
-            <span className="text-pink">URA</span>
+            <span className="text-gold">EDU</span>
+            <span className="text-pink">MITE</span>
           </Link>
         </div>
 
@@ -99,7 +99,7 @@ export default function Register() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="student@edura.com"
+                    placeholder="student@edumite.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 border-2 border-pink bg-obsidian text-white shadow-medium focus:shadow-heavy"

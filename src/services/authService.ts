@@ -13,6 +13,30 @@ export interface SignInData {
 }
 
 /**
+ * Sign in with Google OAuth
+ */
+export async function signInWithGoogle() {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/login`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    });
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error: any) {
+    console.error('Google sign in error:', error);
+    return { data: null, error: error.message || 'Failed to sign in with Google' };
+  }
+}
+
+/**
  * Sign up a new user
  */
 export async function signUp({ email, password, name }: SignUpData) {
@@ -190,15 +214,39 @@ export async function initializeAuth() {
     }
 
     // Fetch user profile
-    const { data: profile, error: profileError } = await supabase
+    let { data: profile, error: profileError } = await supabase
       .from('users')
       .select('*')
       .eq('id', session.user.id)
       .single();
 
+    // If profile doesn't exist (OAuth first-time user), create it
     if (profileError || !profile) {
-      useUserStore.getState().logout();
-      return;
+      const userName = session.user.user_metadata?.name || 
+                       session.user.user_metadata?.full_name || 
+                       session.user.email?.split('@')[0] || 
+                       'User';
+      
+      const { data: newProfile, error: createError } = await supabase
+        .from('users')
+        .insert({
+          id: session.user.id,
+          email: session.user.email!,
+          name: userName,
+          xp: 0,
+          level: 1,
+          streak: 0,
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Failed to create user profile:', createError);
+        useUserStore.getState().logout();
+        return;
+      }
+
+      profile = newProfile;
     }
 
     // Update local store

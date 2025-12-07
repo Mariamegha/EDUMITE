@@ -32,7 +32,7 @@ export const useThemeStore = create<ThemeState>()(
       setFontSize: (size) => set({ fontSize: size }),
     }),
     {
-      name: 'edura-theme',
+      name: 'edumite-theme',
     }
   )
 );

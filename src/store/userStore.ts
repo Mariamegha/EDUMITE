@@ -45,7 +45,7 @@ export const useUserStore = create<UserState>()(
         }),
     }),
     {
-      name: 'edura-user',
+      name: 'edumite-user',
     }
   )
 );
