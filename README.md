@@ -1,543 +1,660 @@
-# Edura - AI Powered Study and Learning Companion
-[![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge\&logo=react\&logoColor=black)](./) [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge\&logo=typescript\&logoColor=white)](./) [![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E?style=for-the-badge\&logo=supabase\&logoColor=white)](./) [![Google Gemini](https://img.shields.io/badge/Gemini%20AI-Powered-4285F4?style=for-the-badge\&logo=google\&logoColor=white)](./) [![Vite](https://img.shields.io/badge/Vite-Server-646CFF?style=for-the-badge\&logo=vite\&logoColor=white)](./) [![Node.js](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge\&logo=node.js\&logoColor=white)](./) [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-Styling-06B6D4?style=for-the-badge\&logo=tailwindcss\&logoColor=white)](./) [![Zustand](https://img.shields.io/badge/Zustand-State_Management-FF9900?style=for-the-badge\&logo=zustand\&logoColor=white)](./) [![TanStack Query](https://img.shields.io/badge/TanStack_Query-Server_State-FF4154?style=for-the-badge\&logo=react-query\&logoColor=white)](./) [![Framer Motion](https://img.shields.io/badge/Framer_Motion-Animations-0055FF?style=for-the-badge\&logo=framer\&logoColor=white)](./) [![Radix UI](https://img.shields.io/badge/Radix_UI-Components-8B5CF6?style=for-the-badge\&logo=radix-ui\&logoColor=white)](./) [![Recharts](https://img.shields.io/badge/Recharts-Charts-FF6384?style=for-the-badge\&logo=recharts\&logoColor=white)](./) [![Monaco Editor](https://img.shields.io/badge/Monaco_Editor-IDE-007ACC?style=for-the-badge\&logo=visual-studio-code\&logoColor=white)](./) [![FrameVR](https://img.shields.io/badge/FrameVR-Virtual_Reality-FF4500?style=for-the-badge\&logo=virtual-reality\&logoColor=white)](./) [![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-UI_Library-8B5CF6?style=for-the-badge\&logo=radix-ui\&logoColor=white)](./) [![DeepTranslate](https://img.shields.io/badge/DeepTranslate-Translation-FF6F61?style=for-the-badge\&logo=google-translate\&logoColor=white)](./)
+<div align="center">
+
+# 🎓 SYLEDUTECH - AI-Powered Learning Revolution
+
+### *Built by SYLESH PAVENDAN*
+
+[![React](https://img.shields.io/badge/React-18-C9B458?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-C27BA0?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-7-C9B458?style=for-the-badge&logo=vite&logoColor=black)](https://vitejs.dev/)
+[![Three.js](https://img.shields.io/badge/Three.js-3D-C27BA0?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org/)
+
+[![Supabase](https://img.shields.io/badge/Supabase-Database-6DAEDB?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
+[![Google Gemini](https://img.shields.io/badge/Gemini%20AI-Powered-C9B458?style=for-the-badge&logo=google&logoColor=black)](https://deepmind.google/technologies/gemini/)
+[![FrameVR](https://img.shields.io/badge/FrameVR-Virtual%20Reality-C27BA0?style=for-the-badge&logo=virtual-reality&logoColor=white)](https://framevr.io)
+
+---
+
+### 🚀 Next-Generation Learning Platform with Immersive 3D Experiences
+
+*A sophisticated full-stack application combining AI tutoring, collaborative learning, and cutting-edge visual design with eye-friendly color systems optimized for long study sessions.*
+
+[🌟 Live Demo](#) | [📖 Documentation](#-installation--setup) | [🐛 Report Bug](https://github.com/SYLESH-1125/SYLEDUTECH/issues) | [💡 Request Feature](https://github.com/SYLESH-1125/SYLEDUTECH/issues)
+
+</div>
+
+---
 
 ## **Table of Contents**
-1. [Overview](./#overview)
-2. [Key Features](./#key-features)
-3. [Architecture](./#architecture)
-4. [Project Structure](./#project-structure)
-5. [Prerequisites](./#prerequisites)
-6. [Installation & Setup](./#installation)
-7. [Environment Variables](./#environment-variables)
-8. [Routes](./#routing)
-9. [Dependencies](./#dependencies)
-10. [Security](./#security)
-11. [Development](./#development)
-12. [Deployment](./#deployment)
-13. [Contributing](./#contributing)
-14. [Roadmap](./#roadmap)
-15. [License & Support](./#license-support)
+1. [Overview](#-overview)
+2. [Key Features](#-key-features)
+3. [Architecture](#️-architecture)
+4. [Tech Stack](#️-tech-stack)
+5. [Prerequisites](#-prerequisites)
+6. [Installation & Setup](#-installation--setup)
+7. [Visual Design System](#-visual-design-system)
+8. [Project Structure](#-project-structure)
+9. [Routes](#️-routes)
+10. [Security](#-security)
+11. [Development](#️-development)
+12. [Deployment](#-deployment)
+13. [Roadmap](#️-roadmap)
+14. [Creator](#-creator)
+15. [License & Support](#-license--support)
 
-## **Overview**
+---
 
-Edura blends AI tutoring, collaborative learning spaces, and productivity tooling into a single app. Learners can generate personalized courses, stay accountable with AI study planners, focus using immersive audio/visual experiences, jump into a shared Study VR room for collaborative sessions, and sync tasks from Google Classroom while keeping all content stored securely on Supabase.
+## 🎯 **Overview**
 
-## **Key Features**
+**SYLEDUTECH** is a revolutionary AI-powered learning platform that transforms education through:
 
-### **Highlights**
+- 🤖 **Gemini AI Integration** - Intelligent tutoring, roadmap generation, and course creation
+- 🎮 **Gamified Learning** - XP system, streaks, leaderboards, and achievement tracking
+- 🎨 **3D Visual Experiences** - WebGL-powered GridScan, LaserFlow, SpotlightCard effects
+- 🎭 **Virtual Study Rooms** - FrameVR integration for collaborative learning
+- 🎯 **Smart Planning** - AI-driven study schedules with Google Classroom sync
+- 🎨 **Eye-Friendly Design** - Soft gold/pink color palette optimized for 6-10 hour sessions
+- 🌍 **Global Accessibility** - 30+ languages, dyslexia fonts, colorblind themes
 
-![Features](https://img.shields.io/badge/Features-Overview-444?style=flat)
+### 💡 **Why SYLEDUTECH?**
 
-* **AI Guidance**: Gemini-powered tutor, roadmap builder, and course generator deliver contextual explanations, milestones, and syllabus drafts.
-* **Smart Planning**: AI Study Planner pairs Monaco/Judge0 practice tasks with auto-generated schedules and Google Classroom imports.
-* **Immersive Focus & VR**: Pomodoro room with adaptive audio/visuals, XP rewards, streak tracking, plus a dedicated Study VR space powered by FrameVR for real-time virtual collaboration.
-* **Knowledge Workspace**: Rich notes, flashcards, quizzes, discussions, mentor chat, and study groups with multilingual translation.
-* **Study Materials Hub**: Upload and organize PDFs, notes, and references with Supabase Storage folders tied to each course.
-* **AI Revision Kit**: Generate quizzes and flashcards directly from uploaded content so students can drill tricky sections instantly.
-* **Progress Intelligence**: Track streaks, XP, subject mastery, and assignment completion in unified analytics dashboards.
-* **Deadline-Aware Schedules**: Smart suggestions prioritize upcoming deadlines, Classroom imports, and personal goals to auto-build daily plans.
-* **Plain-Language Explanations**: Ask any question and the tutor breaks concepts down into simple, student-friendly language.
-* **Gamified Progress**: XP, levels, leaderboards, analytics dashboards, and streak reminders keep learners accountable.
-* **Accessibility & Globalization**: 30+ languages, translation provider, dyslexia-friendly fonts, colorblind themes, and screen-reader friendly UI.
+Built by **SYLESH PAVENDAN**, this platform addresses the core challenges of modern education:
+- ✅ Personalized AI tutoring available 24/7
+- ✅ Immersive 3D environments that enhance focus
+- ✅ Collaborative virtual study spaces
+- ✅ Automated scheduling and progress tracking
+- ✅ Accessible design for all learners
+- ✅ Production-ready with comprehensive security
 
-### **Platform Capabilities**
+---
 
-![Platform](https://img.shields.io/badge/Platform-Capabilities-555?style=flat)
+## ✨ **Key Features**
 
-* **Real-time analytics** across courses, modules, and study sessions using Supabase + Recharts visualizations.
-* **External integrations**: Udemy/Coursera discovery, Google Classroom assignment sync, Judge0 sandbox execution, RapidAPI Deep Translate.
-* **Secure storage** with Supabase Auth + RLS, user-driven buckets for notes/audio, and Express proxy for curated course APIs.
-* **Developer-friendly stack**: TypeScript, Vite, shadcn/ui, Tailwind, Zustand, TanStack Query, Framer Motion, Monaco Editor.
+### 🎯 **Core Capabilities**
 
-### **Feature Deep Dive**
-#### **Learning Roadmaps**
+#### 🤖 **AI-Powered Learning**
+- **Gemini AI Tutor** - Context-aware explanations and personalized guidance
+- **Smart Roadmap Generator** - Skill-based learning paths with milestone tracking
+- **Course Generator** - Automated syllabus creation with structured modules
+- **AI Study Planner** - Deadline-aware scheduling with priority optimization
 
-Two modes:
+#### 🎨 **Immersive 3D Experiences**
+- **GridScan** - WebGL perspective grid with bloom effects (Dashboard)
+- **LaserFlow** - Volumetric fog shaders (Focus Room, Study VR)
+- **GridDistortion** - Interactive ripple effects (Roadmap, Notes)
+- **SpotlightCard** - Mouse-following highlight effects (AI Bot)
+- **FlowingMenu** - GSAP-powered marquee animations (Dashboard)
 
-1. **Simple Roadmaps** for fast goal-based plans.
-2. **Detailed Roadmaps** with questionnaires that factor skill level, timeline, commitment, and target roles.
+#### 🎯 **Productivity Tools**
+- **Focus Room** - Pomodoro timers with ambient audio (rain, forest, cafe, ocean)
+- **Monaco IDE** - Browser-based code editor with Judge0 execution
+- **Notes Workspace** - Rich editor with PDF uploads and AI summaries
+- **Study Planner** - Google Classroom sync with auto-generated schedules
+- **Analytics Dashboard** - Real-time progress tracking with Recharts visualizations
 
-AI produces milestone JSON that feeds the roadmap UI, full descriptions, and progress calculators.
+#### 🌐 **Collaboration Features**
+- **Study VR** - FrameVR virtual spaces with voice/video chat
+- **Discussion Forums** - Threaded conversations per course
+- **Study Groups** - Team collaboration with shared resources
+- **Mentor Chat** - AI-powered mentorship and guidance
+- **Leaderboards** - Gamified rankings and achievements
 
-#### **Focus Room**
+#### 🎨 **Design System**
+- **Soft Color Palette** - Eye-friendly Gold (#C9B458), Pink (#C27BA0), Blue (#6DAEDB)
+- **WCAG AA Compliant** - 12.8:1 primary text contrast ratio
+- **Translucent Shadows** - Reduced visual weight for comfort
+- **Accessibility First** - Dyslexia fonts, colorblind themes, screen reader support
 
-* Pomodoro timers
-* Ambient sound player
-* Visualizer feedback
-* XP rewards & streak tracking
-* Break reminders
+---
 
-#### **Study VR**
+## 🏗️ **Architecture**
 
-Embedded FrameVR spaces with:
+<picture><source srcset=".gitbook/assets/edura-architecture.png" media="(prefers-color-scheme: dark)"><img src=".gitbook/assets/final_architecture.png" alt="SYLEDUTECH Architecture"></picture>
 
-* Voice/video chat
-* Avatars
-* WASD navigation
-* Fullscreen iframe support
+### 🛠️ **Tech Stack**
 
-#### **Notes Workspace**
-
-* Rich editor
-* PDF/text uploads
-* AI summaries, quizzes, flashcards
-* Tagging + search
-
-#### **Community & Mentorship**
-
-* Discussion forums
-* Study groups
-* Mentor chat (AI-powered)
-* Leaderboards
-
-#### **AI Study Planner + Classroom Sync**
-
-* Google Classroom OAuth import
-* Grouped assignment panels
-* AI-prioritized planning
-* Optional Supabase Edge proxy
-
-#### **Judge0 IDE Workspace**
-
-* Monaco editor
-* Multi-language snippets
-* Inline errors
-* Sandbox execution via Judge0
-
-#### **Ambient Focus Audio**
-
-* Auto-detection of local MP3 tracks
-* Procedural fallback audio
-* Audio analyzer → particle visualizer
-
-## Architecture
-
-<picture><source srcset=".gitbook/assets/edura-architecture.png" media="(prefers-color-scheme: dark)"><img src=".gitbook/assets/final_architecture.png" alt="Edura Architecture"></picture>
-
-### Technology Stack
-
-#### Frontend
-
-* **Framework**: React 18 with TypeScript
-* **Build Tool**: Vite 7
-* **Routing**: React Router DOM 6
-* **State Management**:
-  * Zustand (global state)
-  * TanStack Query (server state)
-* **UI Components**:
-  * shadcn/ui (Radix UI primitives)
-  * Tailwind CSS (styling)
-  * Framer Motion (animations)
-* **Form Handling**: React Hook Form with Zod validation
-* **Charts**: Recharts
-
-#### Backend
-
-* **Database**: Supabase (PostgreSQL)
-* **Authentication**: Supabase Auth
-* **Storage**: Supabase Storage
-* **API**: Express.js server for external course fetching
-* **AI Services**:
-  * Google Gemini AI (chat, summaries, flashcards, quizzes, roadmaps)
-  * RapidAPI Deep Translate (multi-language support)
-
-### Project Structure
-
+#### **Frontend**
 ```
-edura/
-├── public/                      # Static assets served by Vite
-│   ├── audio/                   # Ambient tracks + README for contributors
-│   └── robots.txt               # Basic crawler rules
-├── server/
-│   └── index.js                 # Express proxy for curated external courses
-├── src/
-│   ├── App.tsx                  # Root router + layout shell
-│   ├── main.tsx                 # Vite entry point
-│   ├── components/
-│   │   ├── 3D/                  # FrameVR + particle scenes (BrainModel, HeroScene, etc.)
-│   │   ├── ui/                  # shadcn/ui primitives (accordion, dialog, chart...)
-│   │   ├── ClassroomAssignmentsPanel.tsx
-│   │   ├── DiscussionForum.tsx
-│   │   ├── IDE.tsx              # Judge0-powered Monaco editor
-│   │   ├── MentorChat.tsx
-│   │   ├── Navbar.tsx / NavLink.tsx
-│   │   ├── StudyGroupChat.tsx
-│   │   ├── ThemeProvider.tsx
-│   │   ├── TranslationProvider.tsx
-│   │   └── UniverseVisualization.tsx
-│   ├── hooks/
-│   │   ├── useGoogleClassroom.ts
-│   │   ├── useSoundPlayer.ts
-│   │   ├── useTranslation.ts
-│   │   ├── useToast.ts
-│   │   └── use-mobile.tsx
-│   ├── lib/
-│   │   ├── auth.ts               # Supabase auth helpers
-│   │   ├── gemini.ts             # Gemini client wrapper
-│   │   ├── supabase.ts           # Supabase client
-│   │   └── utils.ts
-│   ├── pages/
-│   │   ├── AIBot.tsx             # Conversational tutor
-│   │   ├── Analytics.tsx
-│   │   ├── Community.tsx
-│   │   ├── CourseDetail.tsx
-│   │   ├── Courses.tsx
-│   │   ├── Dashboard.tsx
-│   │   ├── FocusRoom.tsx
-│   │   ├── Landing.tsx
-│   │   ├── Login.tsx / Register.tsx
-│   │   ├── Notes.tsx
-│   │   ├── NotFound.tsx
-│   │   ├── Roadmap.tsx
-│   │   ├── Settings.tsx
-│   │   ├── StudyPlanner.tsx
-│   │   └── StudyVR.tsx           # Virtual collaboration room
-│   ├── services/
-│   │   ├── analyticsService.ts
-│   │   ├── authService.ts
-│   │   ├── classroomService.ts
-│   │   ├── communityService.ts
-│   │   ├── courseGeneratorService.ts
-│   │   ├── courseService.ts
-│   │   ├── leaderboardService.ts
-│   │   ├── notesService.ts
-│   │   ├── roadmapService.ts / roadmapShService.ts
-│   │   ├── translateService.ts
-│   │   └── userService.ts
-│   ├── store/
-│   │   ├── themeStore.ts
-│   │   └── userStore.ts
-│   ├── types/
-│   │   └── classroom.ts
-│   └── utils/
-│       └── generateSchedule.js
-├── supabase-schema.sql          # Database schema + policies
-├── tailwind.config.ts           # Tailwind + shadcn presets
-├── tsconfig*.json               # TS build configs
-├── vite.config.ts               # Vite plugins + aliases
-└── package.json                 # Scripts and dependencies
+⚛️  React 18           - UI framework with hooks and concurrent features
+📘  TypeScript 5        - Type-safe development
+⚡  Vite 7             - Lightning-fast build tool and dev server
+🎨  Tailwind CSS       - Utility-first styling with custom palette
+🎭  Framer Motion      - Advanced animations and gestures
+🎬  GSAP               - Professional animation engine
 ```
 
-### Database Schema
+#### **3D Graphics & Visualization**
+```
+🎮  Three.js           - WebGL 3D rendering engine
+🌟  @react-three/fiber - React renderer for Three.js
+✨  Postprocessing     - Bloom, chromatic aberration effects
+🔮  Custom Shaders     - GLSL volumetric fog, ripple effects
+```
 
-The application uses Supabase (PostgreSQL) with the following main tables:
+#### **UI Components**
+```
+🧩  shadcn/ui          - Radix UI primitives with Tailwind
+🎯  Radix UI           - Accessible component primitives
+📊  Recharts           - Composable charting library
+🖥️  Monaco Editor      - VS Code's editor in the browser
+```
 
-#### Core Tables
+#### **State & Data**
+```
+🐻  Zustand            - Lightweight state management
+🔄  TanStack Query     - Server state synchronization
+📋  React Hook Form    - Performant form handling
+✅  Zod                - TypeScript-first schema validation
+```
 
-* **users**: User profiles (extends Supabase auth.users)
-  * XP, level, streak tracking
-  * Linked to auth.users via UUID
-* **courses**: Course metadata
-  * Title, description, level, category
-  * Multi-language support (JSONB)
-  * Published status
-* **modules**: Course modules
-  * Content (JSONB) with text, video, code blocks
-  * Flashcards, practice tasks, quizzes
-  * IDE tasks for programming courses
-  * Time estimates
-* **user\_course\_progress**: Progress tracking
-  * Completed modules count
-  * Progress percentage
-  * Quiz scores (JSONB)
-  * Last accessed timestamp
-* **notes**: User notes
-  * Title, content, summary
-  * File attachments (Supabase Storage)
-  * AI-generated summaries
-* **roadmaps**: Learning roadmaps
-  * Goal description
-  * Milestones (JSONB array)
-  * Progress percentage
-* **study\_sessions**: Focus room sessions
-  * Duration, XP earned
-  * Mode (focus/break)
+#### **Backend & Database**
+```
+🗄️  Supabase           - PostgreSQL database + Auth + Storage
+🔐  Row Level Security - Database-level access control
+🚀  Supabase Storage   - File uploads for notes/audio/PDFs
+🔑  OAuth Integration  - Google Classroom sync
+```
 
-#### Security
+#### **AI & APIs**
+```
+🤖  Google Gemini AI   - Chat, summaries, roadmaps, quizzes
+⚖️  Judge0 API         - Code execution sandbox (50+ languages)
+🌍  RapidAPI Translate - 30+ language support
+📚  Udemy/Coursera API - External course discovery
+```
 
-* Row Level Security (RLS) enabled on all tables
-* Policies ensure users can only access their own data
-* Public courses are viewable by all authenticated users
+#### **Backend Server**
+```
+🟢  Node.js + Express  - Proxy server for curated APIs
+🔒  CORS Security      - Protected endpoints
+📡  RESTful Routes     - External course fetching
+```
 
-### API Architecture
+---
 
-#### Frontend API Layer
+## 🎨 **Visual Design System**
 
-* **Supabase Client**: Direct database access via Supabase JS SDK
-* **Service Layer**: Business logic abstraction in `src/services/`
-* **React Query**: Caching and state management for server data
+### **Color Palette** (Optimized for 6-10 Hour Study Sessions)
 
-#### Backend API (Express Server)
+```css
+/* Primary Colors - Dull & Eye-Friendly */
+Gold:    #C9B458  /* 43% saturation - main accent */
+Pink:    #C27BA0  /* 28% saturation - secondary accent */
+Blue:    #6DAEDB  /* Alternate accent */
 
-* **Port**: 3001
-* **Endpoints**:
-  * `GET /api/courses/external` - Fetch external courses (Udemy/Coursera)
-  * `GET /health` - Health check
+/* Backgrounds - Soft Dark Tones */
+Main:    #0F1115  /* Deepblack with blue tint */
+Surface: #151823  /* Card backgrounds */
+Panel:   #1B1F2E  /* Elevated surfaces */
 
-#### External APIs
+/* Text - Soft White for Comfort */
+Primary: #E6E8ED  /* 92% lightness - reduced eye strain */
+Muted:   #9CA3AF  /* Secondary text */
 
-* **Google Gemini AI**:
-  * Chat responses
-  * Content summarization
-  * Quiz/flashcard generation
-  * Roadmap generation
-* **RapidAPI Deep Translate**:
-  * Text translation
-  * Multi-language support
-  * Translation caching
+/* Utility Colors */
+Success: #7FA87F  /* Soft green */
+Error:   #B87C7C  /* Soft red */
+Warning: #BFA36A  /* Soft amber */
+Border:  #2A2E3F  /* Subtle borders */
+```
 
-### State Management
+### **Design Philosophy**
+- ✅ **No Pure White/Black** - Prevents harsh contrast
+- ✅ **Translucent Shadows** - `rgba(0,0,0,0.3)` instead of solid black
+- ✅ **60% Saturation Reduction** - Compared to brutal neon theme
+- ✅ **WCAG AA Compliant** - 12.8:1 primary text contrast
+- ✅ **Inspired By** - Notion, Linear, Obsidian, Apple Study Mode
 
-#### Zustand Stores
+### **3D Visual Effects**
+- **GridScan** - Perspective grid with bloom (Dashboard background)
+- **LaserFlow** - Volumetric fog shader (Focus Room ambiance)
+- **GridDistortion** - Interactive ripple on hover (Hero sections)
+- **SpotlightCard** - Mouse-following gradient (Sidebar cards)
+- **FlowingMenu** - Animated marquee hover (Navigation)
 
-* **userStore**: Authentication state, user profile
-* **themeStore**: Theme preferences, accessibility settings, language
+---
 
-#### React Query
+## 📁 **Project Structure**
 
-* Server state caching
-* Automatic refetching
-* Optimistic updates
+```
+syledutech/
+├── 📦 public/                    # Static assets
+│   ├── 🎵 audio/                 # Ambient tracks (cafe, forest, ocean, rain)
+│   └── 🤖 robots.txt
+├── 🖥️ server/
+│   └── index.js                  # Express proxy for external APIs
+├── ⚙️ src/
+│   ├── 🎯 App.tsx                # Root component with routing
+│   ├── 🎨 index.css              # Global styles + CSS variables
+│   ├── 🚀 main.tsx               # Vite entry point
+│   │
+│   ├── 🎭 components/
+│   │   ├── 3D/                   # WebGL visual effects
+│   │   │   ├── GridScan.tsx      # Perspective grid (Dashboard)
+│   │   │   ├── LaserFlow.tsx     # Volumetric fog (Focus Room)
+│   │   │   ├── GridDistortion.tsx # Ripple effect (Heroes)
+│   │   │   ├── SpotlightCard.tsx # Mouse spotlight (AI Bot)
+│   │   │   ├── FlowingMenu.tsx   # Marquee animation (Nav)
+│   │   │   ├── ModelViewer.tsx   # 3D model loader
+│   │   │   ├── Cubes.tsx         # Animated cubes (Landing)
+│   │   │   └── HeroScene.tsx     # Three.js scene composer
+│   │   │
+│   │   ├── ui/                   # shadcn/ui primitives (40+ components)
+│   │   │   ├── button.tsx, card.tsx, dialog.tsx, form.tsx...
+│   │   │
+│   │   ├── DockNav.tsx           # macOS-style navigation dock
+│   │   ├── NavbarGold.tsx        # Top navigation bar
+│   │   ├── BentoCards.tsx        # Dashboard feature cards
+│   │   ├── IDE.tsx               # Monaco + Judge0 code editor
+│   │   ├── MentorChat.tsx        # AI mentor interface
+│   │   ├── StudyGroupChat.tsx    # Collaboration chat
+│   │   ├── DiscussionForum.tsx   # Course discussions
+│   │   ├── UniverseVisualization.tsx # Audio visualizer
+│   │   └── ...
+│   │
+│   ├── 📄 pages/                 # Route components (15 pages)
+│   │   ├── LandingGold.tsx       # Marketing landing page
+│   │   ├── DashboardGold.tsx     # Main dashboard with GridScan
+│   │   ├── AIBot.tsx             # Gemini AI tutor interface
+│   │   ├── Roadmap.tsx           # Learning path generator
+│   │   ├── Notes.tsx             # Note-taking workspace
+│   │   ├── FocusRoom.tsx         # Pomodoro + ambient audio
+│   │   ├── StudyVR.tsx           # FrameVR collaboration
+│   │   ├── Courses.tsx           # Course discovery + generator
+│   │   ├── CourseDetail.tsx      # Course content viewer
+│   │   ├── Community.tsx         # Forums + study groups
+│   │   ├── Analytics.tsx         # Progress dashboards
+│   │   ├── StudyPlanner.tsx      # AI scheduling + Classroom sync
+│   │   ├── Settings.tsx          # User preferences
+│   │   └── Login.tsx / Register.tsx
+│   │
+│   ├── 🔧 services/              # API integrations
+│   │   ├── authService.ts        # Supabase authentication
+│   │   ├── courseService.ts      # Course CRUD operations
+│   │   ├── courseGeneratorService.ts # AI course creation
+│   │   ├── roadmapService.ts     # Roadmap generation
+│   │   ├── notesService.ts       # Note management
+│   │   ├── communityService.ts   # Forums + groups
+│   │   ├── analyticsService.ts   # Progress tracking
+│   │   ├── classroomService.ts   # Google Classroom OAuth
+│   │   ├── translateService.ts   # RapidAPI translation
+│   │   ├── userService.ts        # User profile management
+│   │   └── leaderboardService.ts # Gamification
+│   │
+│   ├── 🪝 hooks/                 # Custom React hooks
+│   │   ├── useTranslation.ts     # Multi-language support
+│   │   ├── useSoundPlayer.ts     # Ambient audio player
+│   │   ├── useGoogleClassroom.ts # Classroom integration
+│   │   └── use-toast.ts          # Toast notifications
+│   │
+│   ├── 📚 lib/                   # Core utilities
+│   │   ├── supabase.ts           # Supabase client config
+│   │   ├── gemini.ts             # Gemini AI client
+│   │   ├── auth.ts               # Auth helpers
+│   │   └── utils.ts              # Utility functions
+│   │
+│   ├── 🗃️ store/                 # Zustand state management
+│   │   ├── userStore.ts          # User session state
+│   │   └── themeStore.ts         # Theme + accessibility
+│   │
+│   ├── 📦 types/                 # TypeScript definitions
+│   │   └── classroom.ts          # Google Classroom types
+│   │
+│   └── 🛠️ utils/
+│       └── generateSchedule.js   # AI scheduling algorithm
+│
+├── 📋 Configuration Files
+│   ├── vite.config.ts            # Vite build configuration
+│   ├── tailwind.config.ts        # Custom color palette
+│   ├── tsconfig.json             # TypeScript config
+│   ├── components.json           # shadcn/ui config
+│   ├── eslint.config.js          # Linting rules
+│   ├── postcss.config.js         # Tailwind processing
+│   └── package.json              # Dependencies + scripts
+│
+├── 📖 Documentation
+│   ├── README.md                 # This file
+│   ├── SETUP.md                  # Installation guide
+│   └── COLOR_REFACTOR.md         # Design system documentation
+│
+└── 🗄️ Database
+    └── supabase-schema.sql       # PostgreSQL schema + RLS policies
+```
 
-### Routing
+---
 
-Protected routes require authentication:
+## 📋 **Prerequisites**
 
-* `/dashboard` - User dashboard
-* `/courses` - Course browser
-* `/courses/:courseId` - Course detail
-* `/ai-bot` - AI chat
-* `/roadmap` - Learning roadmaps
-* `/notes` - Notes management
-* `/focus` - Focus room
-* `/study-planner` - AI planner with Classroom imports
-* `/study-vr` - Virtual reality collaboration room
-* `/community` - Community features
-* `/analytics` - Analytics
-* `/settings` - Settings
-* `*` - NotFound fallback
+Before installation, ensure you have:
 
-Public routes:
+- ✅ **Node.js** 18+ ([Download](https://nodejs.org/))
+- ✅ **npm** or **bun** package manager
+- ✅ **Git** ([Download](https://git-scm.com/))
+- ✅ **Supabase Account** ([Sign up](https://supabase.com/))
+- ✅ **Google Gemini API Key** ([Get key](https://makersuite.google.com/app/apikey))
 
-* `/` - Landing page
-* `/login` - Login
-* `/register` - Registration
+**Optional:**
+- Google Cloud Console project (for Classroom sync)
+- Judge0 API key (for code execution)
+- RapidAPI account (for translation)
 
-## Getting Started
+---
 
-### Prerequisites
+## 🚀 **Installation & Setup**
 
-* Node.js 18+ and npm
-* A Supabase account (free tier works)
-* Google Gemini API key
-* RapidAPI account (for translation features and hosted Judge0 access, optional)
-* Google Cloud project with the Classroom API enabled (for Google Classroom import)
-* Judge0 sandbox (self-hosted container or RapidAPI Judge0 CE plan) for the IDE
-
-### Installation
-
-1.  **Clone the repository**
-
-    ```bash
-    git clone <repository-url>
-    cd edura
-    ```
-2.  **Install dependencies**
-
-    ```bash
-    npm install
-    ```
-3.  **Set up environment variables**
-
-    Create a `.env` file in the root directory:
-    ```bash
-    ### Supabase Configuration
-
-    VITE_SUPABASE_URL=your-supabase-project-url 
-    VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-
-    ### Google Gemini AI Configuration
-
-    VITE_GEMINI_API_KEY=your-gemini-api-key
-    VITE_GEMINI_MODEL=gemini-model
-
-    ### RapidAPI Configuration (for Translation Service)
-
-    VITE_RAPIDAPI_KEY=your-rapidapi-key
-
-    ### Google Classroom OAuth
-
-    VITE_GOOGLE_CLIENT_ID=your-oauth-client-id.apps.googleusercontent.com
-
-    ### Optional: Supabase Edge proxy that fetches Classroom data server-side
-
-    VITE_CLASSROOM_PROXY_URL=https://.functions.supabase.co/classroom-sync
-
-    ### Judge0 Sandbox (required for IDE)
-
-    VITE_JUDGE0_URL=http://localhost:2358
-
-    ### Optional: Needed when using RapidAPI or hosted Judge0 that requires auth headers
-
-    VITE_JUDGE0_HOST=judge0-ce.p.rapidapi.com
-    VITE_JUDGE0_KEY=your-judge0-api-key
-
-    ### Backend API Configuration (optional)
-
-    VITE_API_URL=http://localhost:3001
-    ```
-
-4. **Set up Supabase**
-
-- Create a new project at [supabase.com](https://supabase.com)
-- Go to SQL Editor and run `supabase-schema.sql`
-- Get your credentials from Project Settings → API
-- Update `.env` with your Supabase URL and anon key
-
-5. **Get API Keys**
-
-- **Gemini API**: Get from [Google AI Studio](https://makersuite.google.com/app/apikey)
-- **RapidAPI**: Get from [RapidAPI Hub](https://rapidapi.com/hub) (subscribe to Deep Translate API)
-
-6. **Configure Google Classroom OAuth**
-- Enable the Google Classroom API in [Google Cloud Console](https://console.cloud.google.com/)
-- Create an OAuth 2.0 Web Client with origin `http://localhost:8080` (or your deployed domain)
-- Add the scopes used by this app (courses.readonly, coursework.me, userinfo.email/profile)
-- Paste the generated client ID into `VITE_GOOGLE_CLIENT_ID`
-- (Optional) Deploy a Supabase Edge Function and set `VITE_CLASSROOM_PROXY_URL` if you prefer proxying Classroom requests through your backend
-
-7. **Optional: Add custom ambient audio**
-- Drop your `.mp3` ambience files into `public/audio`
-- Supported filenames: `rain.mp3`, `forest.mp3`, `cafe.mp3`, `white-noise.mp3`, `ocean.mp3`, `space.mp3`
-- The Focus Room will automatically detect these; if a file is missing it falls back to generated audio
-
-8. **Run the development servers**
+### **1️⃣ Clone Repository**
 
 ```bash
-# Run both frontend and backend
-npm run dev:all
+git clone https://github.com/SYLESH-1125/SYLEDUTECH.git
+cd SYLEDUTECH
+```
 
-# Or run separately:
-npm run dev          # Frontend (port 8080)
-npm run dev:server   # Backend (port 3001)
-````
+### **2️⃣ Install Dependencies**
 
-9.  **Open the application**
+```bash
+# Using npm
+npm install
 
-    Navigate to `http://localhost:8080`
+# Or using bun (faster)
+bun install
+```
 
-## Security
+### **3️⃣ Supabase Setup**
 
-* **Environment Variables**: All API keys stored in `.env` (not committed)
-* **Row Level Security**: Database-level security via Supabase RLS
-* **Authentication**: Supabase Auth with JWT tokens
-* **Protected Routes**: Client-side route protection
-* **API Key Validation**: Server-side validation for external APIs
+1. Create a new project at [supabase.com](https://supabase.com/)
+2. Navigate to **SQL Editor**
+3. Copy and paste contents from `supabase-schema.sql`
+4. Execute the SQL to create tables and RLS policies
+5. Go to **Settings → API** and copy:
+   - Project URL
+   - Anon/Public Key
 
-## Development
+### **4️⃣ Environment Variables**
 
-### Available Scripts
+Create `.env` file in the root directory:
 
-* `npm run dev` - Start frontend dev server
-* `npm run dev:server` - Start backend server
-* `npm run dev:all` - Run both servers concurrently
-* `npm run build` - Build for production
-* `npm run preview` - Preview production build
-* `npm run lint` - Run ESLint
+```env
+# Supabase Configuration
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-### Code Style
+# Google Gemini AI
+VITE_GEMINI_API_KEY=your_gemini_api_key
 
-* TypeScript for type safety
-* ESLint for code quality
-* Prettier (via ESLint) for formatting
-* Component-based architecture
+# Google Classroom (Optional)
+VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id
 
-## Dependencies
+# Judge0 Code Execution (Optional)
+VITE_JUDGE0_HOST=https://judge0-ce.p.rapidapi.com
+VITE_JUDGE0_KEY=your_rapidapi_key
 
-### Core Dependencies
+# RapidAPI Translation (Optional)
+VITE_RAPIDAPI_KEY=your_rapidapi_key
+VITE_RAPIDAPI_HOST=deep-translate1.p.rapidapi.com
 
-* `react` & `react-dom` - UI framework
-* `react-router-dom` - Routing
-* `@supabase/supabase-js` - Database & auth
-* `@google/genai` - Gemini AI
-* `zustand` - State management
-* `@tanstack/react-query` - Server state
-* `framer-motion` - Animations
-* `tailwindcss` - Styling
+# Express Server
+VITE_API_URL=http://localhost:3001
+PORT=3001
+```
 
-### UI Components
+### **5️⃣ Start Development Servers**
 
-* `@radix-ui/*` - Accessible UI primitives
-* `shadcn/ui` - Component library
-* `lucide-react` - Icons
-* `recharts` - Charts
+**Frontend (Vite):**
+```bash
+npm run dev
+# → http://localhost:5173
+```
 
-## Deployment
+**Backend (Express - Optional):**
+```bash
+node server/index.js
+# → http://localhost:3001
+```
 
-### Frontend (Vite)
+### **6️⃣ Build for Production**
 
-* Build: `npm run build`
-* Output: `dist/` directory
-* Deploy to: Vercel, Netlify, or any static host
+```bash
+npm run build
+# Output → dist/
+```
 
-### Backend (Express)
+---
 
-* Deploy to: Railway, Render, or any Node.js host
-* Set environment variables in hosting platform
+## 🗺️ **Routes**
 
-### Environment Variables
+| Route | Component | Description |
+|-------|-----------|-------------|
+| `/` | LandingGold | Marketing page with 3D cubes |
+| `/login` | Login | Authentication |
+| `/register` | Register | User registration |
+| `/dashboard` | DashboardGold | Main hub with GridScan |
+| `/ai-bot` | AIBot | Gemini AI tutor chat |
+| `/roadmap` | Roadmap | Learning path generator |
+| `/notes` | Notes | Note-taking workspace |
+| `/focus-room` | FocusRoom | Pomodoro + ambient audio |
+| `/study-vr` | StudyVR | FrameVR collaboration |
+| `/courses` | Courses | Course discovery |
+| `/courses/:id` | CourseDetail | Course content viewer |
+| `/community` | Community | Forums + study groups |
+| `/analytics` | Analytics | Progress dashboards |
+| `/study-planner` | StudyPlanner | AI scheduling |
+| `/settings` | Settings | User preferences |
 
-Ensure all environment variables are set in your hosting platform:
+**All routes except `/`, `/login`, `/register` require authentication.**
 
-* `VITE_SUPABASE_URL`
-* `VITE_SUPABASE_ANON_KEY`
-* `VITE_GEMINI_API_KEY`
-* `VITE_GEMINI_MODEL`
-* `VITE_RAPIDAPI_KEY`
-* `VITE_GOOGLE_CLIENT_ID`
-* `VITE_CLASSROOM_PROXY_URL` (if using Supabase Edge proxy)
-* `VITE_JUDGE0_URL`
-* `VITE_JUDGE0_HOST` (if required)
-* `VITE_JUDGE0_KEY` (if required)
-* `VITE_API_URL` (if the Express server runs on a different host)
+---
 
-## Contributing
+## 🔒 **Security**
+
+### **Supabase Row Level Security (RLS)**
+
+All database tables are protected with RLS policies:
+
+```sql
+-- Users can only access their own data
+CREATE POLICY "Users view own profile" ON users
+  FOR SELECT USING (auth.uid() = id);
+
+-- Courses are public read, authenticated write
+CREATE POLICY "Courses public read" ON courses
+  FOR SELECT USING (true);
+
+CREATE POLICY "Courses authenticated insert" ON courses
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+```
+
+### **Authentication Flow**
+
+1. User registers/logs in via Supabase Auth
+2. JWT token stored in localStorage
+3. Token automatically sent with API requests
+4. RLS policies validate user identity at database level
+
+### **Best Practices**
+
+- ✅ Never commit `.env` file (already in `.gitignore`)
+- ✅ Use environment variables for all secrets
+- ✅ RLS policies protect all user data
+- ✅ CORS configured for Express proxy
+- ✅ Input validation with Zod schemas
+
+---
+
+## 🛠️ **Development**
+
+### **Available Scripts**
+
+```json
+{
+  "dev": "vite",              // Start dev server
+  "build": "vite build",      // Production build
+  "preview": "vite preview",  // Preview production build
+  "lint": "eslint ."          // Run ESLint
+}
+```
+
+### **Development Tips**
+
+- 🔥 Hot Module Replacement (HMR) enabled
+- 🎨 Tailwind CSS IntelliSense recommended
+- 📦 shadcn/ui components auto-imported
+- 🐛 React DevTools for debugging
+- 🎯 TypeScript strict mode enabled
+
+---
+
+## 🚀 **Deployment**
+
+### **Vercel (Recommended)**
+
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel --prod
+```
+
+Add environment variables in Vercel dashboard.
+
+### **Netlify**
+
+```bash
+# Install Netlify CLI
+npm i -g netlify-cli
+
+# Build and deploy
+npm run build
+netlify deploy --prod --dir=dist
+```
+
+### **Docker (Advanced)**
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "run", "preview"]
+```
+
+---
+
+## 🗺️ **Roadmap**
+
+- [x] ✅ Core AI tutoring with Gemini
+- [x] ✅ 3D visual effects (GridScan, LaserFlow, etc.)
+- [x] ✅ Soft color system for eye comfort
+- [x] ✅ Focus Room with Pomodoro + audio
+- [x] ✅ Study VR with FrameVR
+- [x] ✅ Google Classroom integration
+- [ ] 🔄 Mobile app (React Native)
+- [ ] 🔄 Real-time collaboration (WebRTC)
+- [ ] 🔄 Offline mode (PWA)
+- [ ] 🔄 Video course support
+- [ ] 🔄 Certificate generation
+- [ ] 🔄 Peer review system
+- [ ] 🔄 Advanced analytics with ML insights
+
+---
+
+## 👨‍💻 **Creator**
+
+<div align="center">
+
+### **SYLESH PAVENDAN**
+
+*Full-Stack Developer | AI Enthusiast | Education Innovator*
+
+[![GitHub](https://img.shields.io/badge/GitHub-SYLESH--1125-C9B458?style=for-the-badge&logo=github&logoColor=white)](https://github.com/SYLESH-1125)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-C27BA0?style=for-the-badge&logo=linkedin&logoColor=white)](#)
+[![Portfolio](https://img.shields.io/badge/Portfolio-Visit-6DAEDB?style=for-the-badge&logo=google-chrome&logoColor=white)](#)
+
+**Built with** ❤️ **using React, TypeScript, Three.js, and AI**
+
+*"Transforming education through immersive technology and intelligent design"*
+
+</div>
+
+---
+
+## 📄 **License & Support**
+
+### **License**
+
+This project is licensed under the **MIT License**.
+
+```
+MIT License
+
+Copyright (c) 2025 SYLESH PAVENDAN
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### **Support**
+
+Having issues? Here's how to get help:
+
+1. 📖 Check [SETUP.md](SETUP.md) for detailed setup instructions
+2. 🐛 [Open an issue](https://github.com/SYLESH-1125/SYLEDUTECH/issues) on GitHub
+3. 💬 Check browser console for error messages
+4. 🔍 Verify environment variables are set correctly
+5. 📊 Review Supabase logs (Dashboard → Logs)
+
+### **Contributing**
+
+Contributions are welcome! Please:
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## License
+---
 
-This project is licensed under the MIT License.
+## 🙏 **Acknowledgments**
 
-## Support
+Special thanks to:
 
-For issues and questions:
+- **[Vite](https://vitejs.dev/)** - Lightning-fast build tool
+- **[shadcn/ui](https://ui.shadcn.com/)** - Beautiful UI components
+- **[Supabase](https://supabase.com/)** - Open-source Firebase alternative
+- **[Google Gemini](https://deepmind.google/technologies/gemini/)** - Powerful AI capabilities
+- **[Three.js](https://threejs.org/)** - 3D graphics library
+- **[FrameVR](https://framevr.io)** - Virtual collaboration spaces
+- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS framework
 
-1. Check the browser console for errors
-2. Verify environment variables are set correctly
-3. Check Supabase logs (Dashboard → Logs)
-4. Review the [SETUP.md](SETUP.md) guide
+---
 
-## Roadmap
+<div align="center">
 
-* [ ] Real-time collaboration features
-* [ ] Mobile app (React Native)
-* [ ] Advanced analytics and insights
-* [ ] Video course support
-* [ ] Peer review system
-* [ ] Certificate generation
-* [ ] Integration with more learning platforms
+### ⭐ **Star this repo if you found it helpful!**
 
-## Acknowledgments
+**SYLEDUTECH** - *Where AI meets education*
 
-* Built with [Vite](https://vitejs.dev/)
-* UI components from [shadcn/ui](https://ui.shadcn.com/)
-* Database powered by [Supabase](https://supabase.com/)
-* AI powered by [Google Gemini](https://deepmind.google/technologies/gemini/)
-* Virtual reality environment powered by [FrameVR](https://framevr.io)
+Made with 💙 by **SYLESH PAVENDAN** | © 2025
 
-**Note**: Make sure to never commit your `.env` file. The `.env` file is already in `.gitignore` for security.
+[🔝 Back to top](#-syledutech---ai-powered-learning-revolution)
+
+</div>
