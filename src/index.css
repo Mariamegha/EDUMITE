@@ -1,0 +1,267 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* SOFTENED DULL THEME - EYE-FRIENDLY */
+    --background: 225 15% 8%; /* #0F1115 */
+    --foreground: 225 10% 92%; /* #E6E8ED */
+
+    --card: 225 18% 11%; /* #151823 */
+    --card-foreground: 225 10% 92%;
+
+    --popover: 225 18% 11%;
+    --popover-foreground: 225 10% 92%;
+
+    --primary: 45 43% 57%; /* #C9B458 dull gold */
+    --primary-foreground: 225 15% 8%;
+
+    --secondary: 330 28% 62%; /* #C27BA0 dull pink */
+    --secondary-foreground: 225 10% 92%;
+
+    --muted: 225 23% 15%; /* #1B1F2E */
+    --muted-foreground: 225 10% 67%; /* #A7AABD */
+
+    --accent: 200 50% 65%; /* #6DAEDB soft blue */
+    --accent-foreground: 225 10% 92%;
+
+    --destructive: 0 24% 61%; /* #B87C7C soft error */
+    --destructive-foreground: 225 10% 92%;
+
+    --success: 120 18% 59%; /* #7FA87F soft green */
+    --success-foreground: 225 10% 92%;
+
+    --warning: 40 32% 58%; /* #BFA36A soft amber */
+    --warning-foreground: 225 15% 8%;
+
+    --border: 225 20% 22%; /* #2A2E3F */
+    --input: 225 23% 15%;
+    --ring: 45 43% 57%; /* dull gold focus */
+
+    --radius: 0.5rem;
+
+    /* Soft transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    /* Same softened theme */
+    --background: 225 15% 8%;
+    --foreground: 225 10% 92%;
+
+    --card: 225 18% 11%;
+    --card-foreground: 225 10% 92%;
+
+    --popover: 225 18% 11%;
+    --popover-foreground: 225 10% 92%;
+
+    --primary: 45 43% 57%;
+    --primary-foreground: 225 15% 8%;
+
+    --secondary: 330 28% 62%;
+    --secondary-foreground: 225 10% 92%;
+
+    --muted: 225 23% 15%;
+    --muted-foreground: 225 10% 67%;
+
+    --accent: 200 50% 65%;
+    --accent-foreground: 225 10% 92%;
+
+    --destructive: 0 24% 61%;
+    --destructive-foreground: 225 10% 92%;
+
+    --success: 120 18% 59%;
+    --success-foreground: 225 10% 92%;
+
+    --warning: 40 32% 58%;
+    --warning-foreground: 225 15% 8%;
+
+    --border: 225 20% 22%;
+    --input: 225 23% 15%;
+    --ring: 330 28% 62%;
+  }
+
+  .colorblind {
+    /* Color-blind Safe Mode (softened) */
+    --primary: 200 50% 55%;
+    --accent: 40 45% 55%;
+    --success: 150 25% 50%;
+    --destructive: 0 24% 55%;
+    --muted: 45 30% 60%;
+  }
+
+  .dyslexia {
+    /* Applied via body class for font changes */
+    font-family: 'OpenDyslexic', 'Atkinson Hyperlegible', sans-serif;
+    letter-spacing: 0.05em;
+    line-height: 1.7;
+    word-spacing: 0.12em;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-deepblack text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Soft selection color */
+  ::selection {
+    background-color: rgba(201, 180, 88, 0.3); /* Dull gold */
+    color: #E6E8ED;
+  }
+
+  ::-moz-selection {
+    background-color: rgba(201, 180, 88, 0.3);
+    color: #E6E8ED;
+  }
+
+  /* Soft scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0F1115;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2A2E3F;
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3A3E4F;
+  }
+
+  /* Soft focus states */
+  input:focus,
+  textarea:focus,
+  select:focus,
+  button:focus-visible {
+    outline: 2px solid rgba(201, 180, 88, 0.5);
+    outline-offset: 2px;
+  }
+
+  /* Dyslexia font loading */
+  @font-face {
+    font-family: 'OpenDyslexic';
+    src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/ttf/OpenDyslexic-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+}
+
+@layer utilities {
+  .gradient-cosmic {
+    background: var(--gradient-cosmic);
+  }
+
+  .gradient-accent {
+    background: var(--gradient-accent);
+  }
+
+  .gradient-success {
+    background: var(--gradient-success);
+  }
+
+  .glow-primary {
+    box-shadow: var(--glow-primary);
+  }
+
+  .glow-accent {
+    box-shadow: var(--glow-accent);
+  }
+
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Study planner calendar overrides */
+.study-calendar .react-calendar {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+}
+
+.study-calendar .react-calendar__navigation {
+  margin-bottom: 1rem;
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+}
+
+.study-calendar .react-calendar__navigation button {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  background: transparent;
+  border-radius: calc(var(--radius) / 2);
+}
+
+.study-calendar .react-calendar__navigation button:enabled:hover {
+  background-color: hsl(var(--secondary) / 0.4);
+}
+
+.study-calendar .react-calendar__tile {
+  border-radius: 0.75rem;
+  min-height: 64px;
+  padding: 0.5rem;
+  transition: var(--transition-smooth);
+}
+
+.study-calendar .react-calendar__tile--now {
+  background-color: hsl(var(--accent) / 0.15);
+}
+
+.study-calendar .has-study-task {
+  position: relative;
+  background-color: hsl(var(--primary) / 0.15);
+  color: hsl(var(--primary));
+  font-weight: 600;
+}
+
+.study-calendar .has-study-task::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background-color: hsl(var(--primary));
+}
+
+/* Ensure native picker icons stay visible on dark backgrounds */
+.dark input[type='date']::-webkit-calendar-picker-indicator,
+.dark input[type='time']::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+.dark input[type='date']::-moz-focus-inner,
+.dark input[type='time']::-moz-focus-inner {
+  filter: invert(1);
+}
