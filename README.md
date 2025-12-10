@@ -19,7 +19,7 @@
 
 *A sophisticated full-stack application combining AI tutoring, collaborative learning, and cutting-edge visual design with eye-friendly color systems optimized for long study sessions.*
 
-[🌟 Live Demo](#) | [📖 Documentation](#-installation--setup) | [🐛 Report Bug](https://github.com/SYLESH-1125/SYLEDUTECH/issues) | [💡 Request Feature](https://github.com/SYLESH-1125/SYLEDUTECH/issues)
+[🌟 Live Demo](#) | [📖 Documentation](#-installation--setup) | [🐛 Report Bug](https://github.com/SYLESH-1125/EDUMITE/issues) | [💡 Request Feature](https://github.com/SYLESH-1125/EDUMITE/issues)
 
 </div>
 
@@ -46,7 +46,7 @@
 
 ## 🎯 **Overview**
 
-**SYLEDUTECH** is a revolutionary AI-powered learning platform that transforms education through:
+**EDUMITE** is a revolutionary AI-powered learning platform that transforms education through:
 
 - 🤖 **Gemini AI Integration** - Intelligent tutoring, roadmap generation, and course creation
 - 🎮 **Gamified Learning** - XP system, streaks, leaderboards, and achievement tracking
@@ -56,7 +56,7 @@
 - 🎨 **Eye-Friendly Design** - Soft gold/pink color palette optimized for 6-10 hour sessions
 - 🌍 **Global Accessibility** - 30+ languages, dyslexia fonts, colorblind themes
 
-### 💡 **Why SYLEDUTECH?**
+### 💡 **Why EDUMITE?**
 
 Built by **SYLESH PAVENDAN**, this platform addresses the core challenges of modern education:
 - ✅ Personalized AI tutoring available 24/7
@@ -109,7 +109,7 @@ Built by **SYLESH PAVENDAN**, this platform addresses the core challenges of mod
 
 ## 🏗️ **Architecture**
 
-<picture><source srcset=".gitbook/assets/edura-architecture.png" media="(prefers-color-scheme: dark)"><img src=".gitbook/assets/final_architecture.png" alt="SYLEDUTECH Architecture"></picture>
+<picture><source srcset=".gitbook/assets/edura-architecture.png" media="(prefers-color-scheme: dark)"><img src=".gitbook/assets/final_architecture.png" alt="EDUMITE Architecture"></picture>
 
 ### 🛠️ **Tech Stack**
 
@@ -217,7 +217,7 @@ Border:  #2A2E3F  /* Subtle borders */
 ## 📁 **Project Structure**
 
 ```
-syledutech/
+edumite/
 ├── 📦 public/                    # Static assets
 │   ├── 🎵 audio/                 # Ambient tracks (cafe, forest, ocean, rain)
 │   └── 🤖 robots.txt
@@ -345,8 +345,8 @@ Before installation, ensure you have:
 ### **1️⃣ Clone Repository**
 
 ```bash
-git clone https://github.com/SYLESH-1125/SYLEDUTECH.git
-cd SYLEDUTECH
+git clone https://github.com/SYLESH-1125/EDUMITE.git
+cd EDUMITE
 ```
 
 ### **2️⃣ Install Dependencies**
@@ -616,7 +616,7 @@ SOFTWARE.
 Having issues? Here's how to get help:
 
 1. 📖 Check [SETUP.md](SETUP.md) for detailed setup instructions
-2. 🐛 [Open an issue](https://github.com/SYLESH-1125/SYLEDUTECH/issues) on GitHub
+2. 🐛 [Open an issue](https://github.com/SYLESH-1125/EDUMITE/issues) on GitHub
 3. 💬 Check browser console for error messages
 4. 🔍 Verify environment variables are set correctly
 5. 📊 Review Supabase logs (Dashboard → Logs)
@@ -651,10 +651,10 @@ Special thanks to:
 
 ### ⭐ **Star this repo if you found it helpful!**
 
-**SYLEDUTECH** - *Where AI meets education*
+**EDUMITE** - *Where AI meets education*
 
 Made with 💙 by **SYLESH PAVENDAN** | © 2025
 
-[🔝 Back to top](#-syledutech---ai-powered-learning-revolution)
+[🔝 Back to top](#-edumite---ai-powered-learning-revolution)
 
 </div>

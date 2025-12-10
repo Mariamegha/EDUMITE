@@ -1,289 +1,359 @@
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { useAccessibilityStore, ColorblindMode, TextScale, SignLanguage } from '@/store/accessibilityStore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings as SettingsIcon, User, Bell, Shield, Palette } from 'lucide-react';
-import { useThemeStore } from '@/store/themeStore';
+import { SignAvatar } from '@/components/accessibility/SignAvatar';
+import { 
+  Accessibility,
+  Type, 
+  Eye, 
+  Subtitles, 
+  Contrast,
+  Hand,
+  User,
+  Bell,
+  Lock,
+  Palette,
+  RefreshCw
+} from 'lucide-react';
 import { useUserStore } from '@/store/userStore';
-import { SUPPORTED_LANGUAGES } from '@/services/translateService';
-import { TranslatedText } from '@/components/TranslatedText';
-import { useState, useEffect } from 'react';
 
 export default function Settings() {
-  const { mode, setMode, isDyslexia, toggleDyslexia, isColorblind, toggleColorblind, language, setLanguage, fontSize, setFontSize } =
-    useThemeStore();
   const user = useUserStore((state) => state.user);
+  const [activeTab, setActiveTab] = useState<'profile' | 'accessibility' | 'notifications' | 'privacy'>('accessibility');
+  const [showSignAvatar, setShowSignAvatar] = useState(false);
 
-  const handleFontSizeChange = (value: string) => {
-    setFontSize(value);
-    document.documentElement.style.fontSize =
-      value === 'small' ? '12px' :
-      value === 'medium' ? '16px' :
-      value === 'large' ? '20px' :
-      '24px'; // xlarge
-  };
+  const {
+    dyslexiaFont,
+    setDyslexiaFont,
+    colorblindMode,
+    setColorblindMode,
+    textScale,
+    setTextScale,
+    highContrast,
+    setHighContrast,
+    captionsEnabled,
+    setCaptionsEnabled,
+    signLanguage,
+    setSignLanguage,
+    resetSettings,
+  } = useAccessibilityStore();
+
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'accessibility', label: 'Accessibility', icon: Accessibility },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'privacy', label: 'Privacy', icon: Lock },
+  ];
+
+  const colorblindModes: { mode: ColorblindMode; label: string; description: string }[] = [
+    { mode: 'none', label: 'None', description: 'Standard colors' },
+    { mode: 'protanopia', label: 'Protanopia', description: 'Red-blind' },
+    { mode: 'deuteranopia', label: 'Deuteranopia', description: 'Green-blind' },
+    { mode: 'tritanopia', label: 'Tritanopia', description: 'Blue-blind' },
+  ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="mb-8 flex items-center gap-3">
-          <SettingsIcon className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold"><TranslatedText text="Settings" /></h1>
+    <div className="min-h-screen bg-gradient-to-br from-[#C9B458]/10 via-[#C27BA0]/10 to-[#6DAEDB]/10 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-4xl font-black mb-2">Settings</h1>
+          <p className="text-lg text-black/60">Customize your EDUMITE experience</p>
+        </motion.div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 overflow-x-auto">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <Button
+                key={tab.id}
+                variant={activeTab === tab.id ? 'default' : 'outline'}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 border-4 border-black whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-[#C9B458] hover:bg-[#B8A347] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                    : 'shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </Button>
+            );
+          })}
         </div>
-      </motion.div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="profile"><TranslatedText text="Profile" /></TabsTrigger>
-          <TabsTrigger value="accessibility"><TranslatedText text="Accessibility" /></TabsTrigger>
-          <TabsTrigger value="notifications"><TranslatedText text="Notifications" /></TabsTrigger>
-          <TabsTrigger value="privacy"><TranslatedText text="Privacy" /></TabsTrigger>
-        </TabsList>
+        {/* Accessibility Section */}
+        {activeTab === 'accessibility' && (
+          <motion.div
+            id="accessibility-section"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Visual Accessibility */}
+            <Card className="p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-obsidian">
+              <div className="flex items-center gap-3 mb-6">
+                <Eye className="w-6 h-6 text-[#C9B458]" />
+                <h2 className="text-2xl font-black text-white">Visual Accessibility</h2>
+              </div>
 
-        {/* Profile Settings */}
-        <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle><TranslatedText text="Profile Settings" /></CardTitle>
-              <CardDescription><TranslatedText text="Manage your account information" /></CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name"><TranslatedText text="Full Name" /></Label>
-                <Input id="name" defaultValue={user?.name} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email"><TranslatedText text="Email" /></Label>
-                <Input id="email" type="email" defaultValue={user?.email} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="language"><TranslatedText text="Preferred Language" /></Label>
-                <Select value={language} onValueChange={setLanguage}>
-                  <SelectTrigger id="language">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SUPPORTED_LANGUAGES.map((lang) => (
-                      <SelectItem key={lang.code} value={lang.code}>
-                        {lang.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button><TranslatedText text="Save Changes" /></Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Accessibility Settings */}
-        <TabsContent value="accessibility">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle><TranslatedText text="Theme Settings" /></CardTitle>
-                <CardDescription><TranslatedText text="Customize your visual experience" /></CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <div className="space-y-6">
+                {/* Dyslexia Font */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium"><TranslatedText text="Theme Mode" /></p>
-                    <p className="text-sm text-muted-foreground">
-                      <TranslatedText text="Choose your preferred theme" />
-                    </p>
+                    <h3 className="font-bold text-lg flex items-center gap-2 text-white">
+                      <Type className="w-5 h-5" />
+                      Dyslexia-Friendly Font
+                    </h3>
+                    <p className="text-sm text-white/70">Use OpenDyslexic font</p>
                   </div>
-                  <Select value={mode} onValueChange={(value: any) => setMode(value)}>
-                    <SelectTrigger className="w-32">
+                  <Switch
+                    checked={dyslexiaFont}
+                    onCheckedChange={setDyslexiaFont}
+                  />
+                </div>
+
+                {/* Text Scale */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="font-bold text-lg text-white">Text Scale</h3>
+                      <p className="text-sm text-white/70">Adjust text size</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setTextScale(Math.max(0.8, textScale - 0.1) as TextScale)}
+                        className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      >
+                        A-
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setTextScale(Math.min(1.4, textScale + 0.1) as TextScale)}
+                        className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      >
+                        A+
+                      </Button>
+                    </div>
+                  </div>
+                  <Slider
+                    value={[textScale]}
+                    onValueChange={(value) => setTextScale(value[0] as TextScale)}
+                    min={0.8}
+                    max={1.4}
+                    step={0.1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-white/60 mt-1">
+                    <span>80%</span>
+                    <span>100%</span>
+                    <span>140%</span>
+                  </div>
+                </div>
+
+                {/* High Contrast */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-lg flex items-center gap-2 text-white">
+                      <Contrast className="w-5 h-5" />
+                      High Contrast Mode
+                    </h3>
+                    <p className="text-sm text-white/70">Increase visual contrast</p>
+                  </div>
+                  <Switch
+                    checked={highContrast}
+                    onCheckedChange={setHighContrast}
+                  />
+                </div>
+
+                {/* Colorblind Modes */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Palette className="w-5 h-5" />
+                    <h3 className="font-bold text-lg text-white">Colorblind Mode</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {colorblindModes.map((mode) => (
+                      <button
+                        key={mode.mode}
+                        onClick={() => setColorblindMode(mode.mode)}
+                        className={`p-4 rounded-lg border-4 border-black text-left transition-all font-bold ${
+                          colorblindMode === mode.mode
+                            ? 'bg-[#C9B458] text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                            : 'bg-black/50 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
+                      >
+                        <div className="font-bold">{mode.label}</div>
+                        <div className="text-sm text-white/70">{mode.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Audio & Captions */}
+            <Card className="p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-obsidian">
+              <div className="flex items-center gap-3 mb-6">
+                <Subtitles className="w-6 h-6 text-[#C27BA0]" />
+                <h2 className="text-2xl font-black text-white">Audio & Captions</h2>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-lg text-white">Live Captions</h3>
+                    <p className="text-sm text-white/70">Real-time speech-to-text</p>
+                  </div>
+                  <Switch
+                    checked={captionsEnabled}
+                    onCheckedChange={setCaptionsEnabled}
+                  />
+                </div>
+
+                {captionsEnabled && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="p-4 bg-black/50 rounded-lg border-4 border-[#C9B458]"
+                  >
+                    <p className="text-sm font-mono text-white">
+                      [Live captions will appear here during video lectures and discussions]
+                    </p>
+                  </motion.div>
+                )}
+              </div>
+            </Card>
+
+            {/* Sign Language Support */}
+            <Card className="p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-obsidian">
+              <div className="flex items-center gap-3 mb-6">
+                <Hand className="w-6 h-6 text-[#6DAEDB]" />
+                <h2 className="text-2xl font-black text-white">Sign Language Support</h2>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold mb-2 text-white">Sign Language</label>
+                  <Select
+                    value={signLanguage}
+                    onValueChange={(value) => setSignLanguage(value as SignLanguage)}
+                  >
+                    <SelectTrigger className="border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="light"><TranslatedText text="Light" /></SelectItem>
-                      <SelectItem value="dark"><TranslatedText text="Dark" /></SelectItem>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="asl">ASL (American Sign Language)</SelectItem>
+                      <SelectItem value="bsl">BSL (British Sign Language)</SelectItem>
+                      <SelectItem value="isl">ISL (Indian Sign Language)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </CardContent>
+
+                {signLanguage !== 'none' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <Button
+                      onClick={() => setShowSignAvatar(!showSignAvatar)}
+                      className="w-full border-4 border-black bg-[#6DAEDB] hover:bg-[#5C9DCA] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                    >
+                      {showSignAvatar ? 'Hide' : 'Show'} Sign Language Avatar
+                    </Button>
+
+                    {showSignAvatar && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="mt-4"
+                      >
+                        <SignAvatar language={signLanguage} text="Welcome to EDUMITE accessibility settings" />
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )}
+              </div>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle><TranslatedText text="Accessibility Features" /></CardTitle>
-                <CardDescription><TranslatedText text="Enable features to enhance your experience" /></CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium"><TranslatedText text="Dyslexia-Friendly Mode" /></p>
-                    <p className="text-sm text-muted-foreground">
-                      <TranslatedText text="Uses OpenDyslexic font and increased spacing" />
-                    </p>
-                  </div>
-                  <Switch checked={isDyslexia} onCheckedChange={toggleDyslexia} />
+            {/* Reset All Settings */}
+            <Card className="p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-obsidian">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-lg flex items-center gap-2 text-white">
+                    <RefreshCw className="w-5 h-5" />
+                    Reset All Settings
+                  </h3>
+                  <p className="text-sm text-white/70">Restore default accessibility settings</p>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium"><TranslatedText text="Colorblind-Friendly Mode" /></p>
-                    <p className="text-sm text-muted-foreground">
-                      <TranslatedText text="Uses high-contrast, accessible color palette" />
-                    </p>
-                  </div>
-                  <Switch checked={isColorblind} onCheckedChange={toggleColorblind} />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium"><TranslatedText text="Screen Reader Support" /></p>
-                    <p className="text-sm text-muted-foreground">
-                      <TranslatedText text="Enhanced ARIA labels and descriptions" />
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium"><TranslatedText text="Reduce Motion" /></p>
-                    <p className="text-sm text-muted-foreground">
-                      <TranslatedText text="Minimize animations and transitions" />
-                    </p>
-                  </div>
-                  <Switch />
-                </div>
-              </CardContent>
+                <Button
+                  variant="outline"
+                  onClick={resetSettings}
+                  className="border-4 border-black bg-[#C27BA0] text-white font-black hover:bg-[#B16A8F] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  Reset
+                </Button>
+              </div>
             </Card>
+          </motion.div>
+        )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle><TranslatedText text="Font Size" /></CardTitle>
-                <CardDescription><TranslatedText text="Adjust text size for better readability" /></CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Select value={fontSize} onValueChange={handleFontSizeChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="small"><TranslatedText text="Small" /></SelectItem>
-                    <SelectItem value="medium"><TranslatedText text="Medium" /></SelectItem>
-                    <SelectItem value="large"><TranslatedText text="Large" /></SelectItem>
-                    <SelectItem value="xlarge"><TranslatedText text="Extra Large" /></SelectItem>
-                  </SelectContent>
-                </Select>
-              </CardContent>
+        {/* Profile Section */}
+        {activeTab === 'profile' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <Card className="p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+              <h2 className="text-2xl font-black mb-4">Profile Settings</h2>
+              <p className="text-black/60">Profile settings coming soon...</p>
             </Card>
-          </div>
-        </TabsContent>
+          </motion.div>
+        )}
 
-        {/* Notification Settings */}
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle><TranslatedText text="Notification Preferences" /></CardTitle>
-              <CardDescription><TranslatedText text="Choose what updates you want to receive" /></CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium"><TranslatedText text="Study Reminders" /></p>
-                  <p className="text-sm text-muted-foreground">
-                    <TranslatedText text="Get reminded about your study schedule" />
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
+        {/* Notifications Section */}
+        {activeTab === 'notifications' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <Card className="p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+              <h2 className="text-2xl font-black mb-4">Notification Settings</h2>
+              <p className="text-black/60">Notification settings coming soon...</p>
+            </Card>
+          </motion.div>
+        )}
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium"><TranslatedText text="Achievement Notifications" /></p>
-                  <p className="text-sm text-muted-foreground">
-                    <TranslatedText text="Be notified when you earn XP or badges" />
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium"><TranslatedText text="Community Updates" /></p>
-                  <p className="text-sm text-muted-foreground">
-                    <TranslatedText text="New forum replies and group activities" />
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium"><TranslatedText text="Weekly Progress Report" /></p>
-                  <p className="text-sm text-muted-foreground">
-                    <TranslatedText text="Summary of your learning progress" />
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Privacy Settings */}
-        <TabsContent value="privacy">
-          <Card>
-            <CardHeader>
-              <CardTitle><TranslatedText text="Privacy & Security" /></CardTitle>
-              <CardDescription><TranslatedText text="Manage your data and security settings" /></CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium"><TranslatedText text="Profile Visibility" /></p>
-                  <p className="text-sm text-muted-foreground">
-                    <TranslatedText text="Control who can see your profile" />
-                  </p>
-                </div>
-                <Select defaultValue="friends">
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public"><TranslatedText text="Public" /></SelectItem>
-                    <SelectItem value="friends"><TranslatedText text="Friends" /></SelectItem>
-                    <SelectItem value="private"><TranslatedText text="Private" /></SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium"><TranslatedText text="Show on Leaderboard" /></p>
-                  <p className="text-sm text-muted-foreground">
-                    <TranslatedText text="Display your ranking publicly" />
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium"><TranslatedText text="Analytics Data" /></p>
-                  <p className="text-sm text-muted-foreground">
-                    <TranslatedText text="Allow collection of learning data" />
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <div className="pt-4">
-                <Button variant="destructive"><TranslatedText text="Delete Account" /></Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        {/* Privacy Section */}
+        {activeTab === 'privacy' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            <Card className="p-6 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+              <h2 className="text-2xl font-black mb-4">Privacy Settings</h2>
+              <p className="text-black/60">Privacy settings coming soon...</p>
+            </Card>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }

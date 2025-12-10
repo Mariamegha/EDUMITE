@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { generateSummary, generateFlashcards, generateQuiz } from '@/lib/gemini';
 import { extractTextFromFile, createNote } from '@/services/notesService';
 import { getCurrentUserId } from '@/lib/auth';
 import { TranslatedText } from '@/components/TranslatedText';
 import { useTranslatedText } from '@/hooks/useTranslation';
-import { Upload, FileText, Sparkles, Download, Loader2 } from 'lucide-react';
+import { MOCK_NOTES, MOCK_FOLDERS, USE_MOCK_DATA, mockDelay } from '@/mocks';
+import { Upload, FileText, Sparkles, Download, Loader2, Folder, Search, Tag, Paperclip, Edit, Trash } from 'lucide-react';
 import GridDistortion from '@/components/3D/GridDistortion';
 
 interface Flashcard {
@@ -25,6 +28,15 @@ interface QuizQuestion {
 }
 
 export default function Notes() {
+  // Notes library state
+  const [notes, setNotes] = useState<any[]>([]);
+  const [folders, setFolders] = useState<any[]>([]);
+  const [selectedNote, setSelectedNote] = useState<any | null>(null);
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+
+  // File upload state
   const [file, setFile] = useState<File | null>(null);
   const [content, setContent] = useState('');
   const [summary, setSummary] = useState('');
@@ -35,6 +47,18 @@ export default function Notes() {
   const [isGeneratingFlashcards, setIsGeneratingFlashcards] = useState(false);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const { toast } = useToast();
+
+  // Load notes on mount
+  useEffect(() => {
+    const loadNotes = async () => {
+      if (USE_MOCK_DATA) {
+        await mockDelay(300);
+        setNotes(MOCK_NOTES);
+        setFolders(MOCK_FOLDERS);
+      }
+    };
+    loadNotes();
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = e.target.files?.[0];
@@ -240,8 +264,14 @@ export default function Notes() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-      <Tabs defaultValue="upload" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 border-4 border-black shadow-pink-brutal bg-obsidian">
+      <Tabs defaultValue="library" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5 border-4 border-black shadow-pink-brutal bg-obsidian">
+          <TabsTrigger 
+            value="library"
+            className="data-[state=active]:bg-blue data-[state=active]:text-white font-black uppercase"
+          >
+            <TranslatedText text="Library" />
+          </TabsTrigger>
           <TabsTrigger 
             value="upload"
             className="data-[state=active]:bg-pink data-[state=active]:text-white font-black uppercase"
@@ -267,6 +297,147 @@ export default function Notes() {
             <TranslatedText text="Quiz" />
           </TabsTrigger>
         </TabsList>
+
+        {/* Library Tab - NEW */}
+        <TabsContent value="library">
+          <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+            {/* Sidebar */}
+            <div className="space-y-4">
+              {/* Search */}
+              <Card className="border-4 border-black shadow-blue-brutal bg-obsidian">
+                <CardContent className="pt-6">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search notes..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 border-2 border-black"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Folders */}
+              <Card className="border-4 border-black shadow-blue-brutal bg-obsidian">
+                <CardHeader>
+                  <CardTitle className="text-lg font-black uppercase text-blue">
+                    <TranslatedText text="Folders" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Button
+                      variant={selectedFolder === null ? "default" : "ghost"}
+                      className="w-full justify-start font-bold"
+                      onClick={() => setSelectedFolder(null)}
+                    >
+                      <Folder className="mr-2 h-4 w-4" />
+                      <TranslatedText text="All Notes" />
+                      <Badge className="ml-auto" variant="secondary">{notes.length}</Badge>
+                    </Button>
+                    {folders.map((folder: any) => (
+                      <Button
+                        key={folder.id}
+                        variant={selectedFolder === folder.id ? "default" : "ghost"}
+                        className="w-full justify-start font-bold"
+                        onClick={() => setSelectedFolder(folder.id)}
+                      >
+                        <Folder className="mr-2 h-4 w-4" style={{ color: folder.color }} />
+                        {folder.name}
+                        <Badge className="ml-auto" variant="secondary">{folder.noteCount}</Badge>
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Notes Grid */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-black uppercase text-white">
+                  {selectedFolder 
+                    ? folders.find((f: any) => f.id === selectedFolder)?.name 
+                    : <TranslatedText text="All Notes" />}
+                </h2>
+                <Button className="bg-pink border-2 border-black shadow-pink-heavy font-black uppercase">
+                  <FileText className="mr-2 h-4 w-4" />
+                  <TranslatedText text="New Note" />
+                </Button>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {notes
+                  .filter((note: any) => 
+                    (!selectedFolder || note.folderId === selectedFolder) &&
+                    (!searchQuery || note.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                  )
+                  .map((note: any, index: number) => (
+                    <motion.div
+                      key={note.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <Card 
+                        className="border-4 border-black shadow-pink-brutal bg-obsidian cursor-pointer hover:shadow-gold-brutal transition-all"
+                        onClick={() => setSelectedNote(note)}
+                      >
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <CardTitle className="text-lg font-black uppercase text-white truncate">
+                                {note.title}
+                              </CardTitle>
+                              <CardDescription className="text-sm text-muted-foreground mt-1">
+                                {new Date(note.updatedAt).toLocaleDateString()}
+                              </CardDescription>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive">
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-white/80 line-clamp-3 mb-3">
+                            {note.content}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {note.tags.map((tag: string) => (
+                              <Badge 
+                                key={tag}
+                                variant="outline"
+                                className="font-bold cursor-pointer hover:bg-pink hover:text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTag(tag);
+                                }}
+                              >
+                                <Tag className="mr-1 h-3 w-3" />
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                          {note.attachments && note.attachments.length > 0 && (
+                            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                              <Paperclip className="h-3 w-3" />
+                              {note.attachments.length} attachment(s)
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </TabsContent>
 
         {/* Upload Tab */}
         <TabsContent value="upload">

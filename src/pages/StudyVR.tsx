@@ -1,18 +1,30 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TranslatedText } from '@/components/TranslatedText';
-import { Users, Globe, Headphones, Video, Copy, Check } from 'lucide-react';
+import { Users, Globe, Headphones, Video, Copy, Check, PenTool } from 'lucide-react';
 import { useUserStore } from '@/store/userStore';
 import { useToast } from '@/hooks/use-toast';
 import LaserFlow from '@/components/3D/LaserFlow';
+import { RoomSidebar } from '@/components/VR/RoomSidebar';
+import { WhiteboardPanel } from '@/components/VR/WhiteboardPanel';
+import { ModelViewer } from '@/components/VR/ModelViewer';
+import {
+  MOCK_VR_ROOMS,
+  canAddWhiteboard,
+  type VRRoom,
+  type VRModel,
+} from '@/mocks/vrCollaborators';
 
 export default function StudyVR() {
   const user = useUserStore((state) => state.user);
   const [copied, setCopied] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<VRRoom>(MOCK_VR_ROOMS[0]);
+  const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
+  const [currentModel, setCurrentModel] = useState<VRModel | null>(null);
   const { toast } = useToast();
-  const vrLink = 'https://framevr.io/edumite';
+  const vrLink = selectedRoom.frameUrl;
 
   const copyToClipboard = async () => {
     try {
@@ -32,6 +44,43 @@ export default function StudyVR() {
     }
   };
 
+  const handleRoomChange = (room: VRRoom) => {
+    setSelectedRoom(room);
+    toast({
+      title: `Switched to ${room.name}`,
+      description: `Loading ${room.name} virtual environment...`,
+    });
+  };
+
+  const handleOpenWhiteboard = () => {
+    if (!canAddWhiteboard(selectedRoom.id)) {
+      toast({
+        title: 'Maximum whiteboards reached',
+        description: `${selectedRoom.name} has reached the limit of ${selectedRoom.maxWhiteboards} whiteboards. Join another room or ask to remove one.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsWhiteboardOpen(true);
+  };
+
+  const handleModelUpload = (fileName: string, fileType: 'glb' | 'obj') => {
+    const newModel: VRModel = {
+      id: `model-${Date.now()}`,
+      name: fileName,
+      fileType,
+      preview: fileType === 'glb' ? '🧬' : '🪐',
+      uploadedBy: user?.name || 'Anonymous',
+      timestamp: Date.now(),
+    };
+    setCurrentModel(newModel);
+  };
+
+  const handleModelReupload = () => {
+    setCurrentModel(null);
+    setIsWhiteboardOpen(true);
+  };
+
   return (
     <div className="relative min-h-screen bg-deepblack">
       {/* LaserFlow Background */}
@@ -44,7 +93,30 @@ export default function StudyVR() {
         />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+      {/* Room Sidebar */}
+      <RoomSidebar selectedRoom={selectedRoom} onRoomChange={handleRoomChange} />
+
+      {/* Whiteboard Panel */}
+      <WhiteboardPanel
+        isOpen={isWhiteboardOpen}
+        onClose={() => setIsWhiteboardOpen(false)}
+        onModelUpload={handleModelUpload}
+        roomId={selectedRoom.id}
+        roomName={selectedRoom.name}
+      />
+
+      {/* Model Viewer */}
+      <AnimatePresence>
+        {currentModel && (
+          <ModelViewer
+            model={currentModel}
+            onClose={() => setCurrentModel(null)}
+            onReupload={handleModelReupload}
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl ml-[320px]">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -123,29 +195,42 @@ export default function StudyVR() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <CardTitle>
-              <TranslatedText text="Virtual Study Room" />
-            </CardTitle>
-            <CardDescription>
-              {user?.name ? (
-                <>
-                  <TranslatedText text="Welcome" />, <span className="font-semibold">{user.name}</span>! <TranslatedText text="Join the virtual study space below." />
-                </>
-              ) : (
-                <TranslatedText text="Join the virtual study space below." />
-              )}
-            </CardDescription>
+        <Card className="overflow-hidden border-4 border-black shadow-gold-brutal">
+          <CardHeader className="bg-gradient-to-br from-gold/20 to-transparent border-b-4 border-black">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-black uppercase text-gold">
+                  <TranslatedText text="Virtual Study Room" />
+                </CardTitle>
+                <CardDescription>
+                  {user?.name ? (
+                    <>
+                      <TranslatedText text="Welcome" />, <span className="font-semibold">{user.name}</span>! <TranslatedText text="Join the virtual study space below." />
+                    </>
+                  ) : (
+                    <TranslatedText text="Join the virtual study space below." />
+                  )}
+                </CardDescription>
+              </div>
+              <Button
+                onClick={handleOpenWhiteboard}
+                className="bg-pink hover:bg-pink/90 text-white font-bold border-4 border-black shadow-pink-brutal"
+                aria-label="Open whiteboard"
+              >
+                <PenTool className="h-4 w-4 mr-2" />
+                <TranslatedText text="Whiteboard" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="relative w-full bg-black rounded-b-lg overflow-hidden">
               <iframe
-                src="https://framevr.io/edumite"
+                key={selectedRoom.id}
+                src={selectedRoom.frameUrl}
                 className="w-full border-0"
                 allow="microphone; camera; fullscreen; autoplay"
                 allowFullScreen
-                title="Study VR Environment"
+                title={`${selectedRoom.name} VR Environment`}
                 style={{ minHeight: '600px', height: '75vh' }}
               />
             </div>
@@ -160,36 +245,40 @@ export default function StudyVR() {
         transition={{ duration: 0.5, delay: 0.3 }}
         className="mt-6"
       >
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
+        <Card className="border-4 border-black shadow-pink-brutal bg-obsidian">
+          <CardHeader className="border-b-4 border-black bg-gradient-to-br from-pink/20 to-transparent">
+            <CardTitle className="text-lg flex items-center gap-2 font-black uppercase text-pink">
               <Users className="h-5 w-5" />
               <TranslatedText text="Invite Friends" />
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-gray-300">
               <TranslatedText text="Share this link with your friends to study together in the virtual environment" />
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-              <div className="flex-1 p-3 bg-muted rounded-md border border-border flex items-center gap-2">
-                <span className="text-sm font-mono text-foreground break-all">
+              <div className="flex-1 p-3 bg-darknavy rounded-md border-2 border-black flex items-center gap-2">
+                <span className="text-sm font-mono text-white break-all">
                   {vrLink}
                 </span>
               </div>
               <Button
                 onClick={copyToClipboard}
                 variant={copied ? 'default' : 'outline'}
-                className="shrink-0"
+                className={`shrink-0 border-4 border-black font-bold ${
+                  copied
+                    ? 'bg-green-500 hover:bg-green-600 text-white'
+                    : 'bg-gold hover:bg-gold/90 text-black'
+                }`}
               >
                 {copied ? (
                   <>
-                    <Check className="h-4 w-4" />
+                    <Check className="h-4 w-4 mr-2" />
                     <TranslatedText text="Copied!" />
                   </>
                 ) : (
                   <>
-                    <Copy className="h-4 w-4" />
+                    <Copy className="h-4 w-4 mr-2" />
                     <TranslatedText text="Copy Link" />
                   </>
                 )}
@@ -206,42 +295,48 @@ export default function StudyVR() {
         transition={{ duration: 0.5, delay: 0.4 }}
         className="mt-6"
       >
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
+        <Card className="border-4 border-black shadow-blue-brutal bg-obsidian">
+          <CardHeader className="border-b-4 border-black bg-gradient-to-br from-blue/20 to-transparent">
+            <CardTitle className="text-lg font-black uppercase text-blue">
               <TranslatedText text="Getting Started" />
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex items-start gap-2">
-                <span className="text-primary font-bold">1.</span>
-                <span>
+          <CardContent className="pt-4">
+            <ul className="space-y-3 text-sm text-gray-300">
+              <li className="flex items-start gap-3">
+                <span className="text-gold font-black text-lg">1.</span>
+                <span className="font-bold">
                   <TranslatedText text="Allow microphone and camera permissions when prompted" />
                 </span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary font-bold">2.</span>
-                <span>
+              <li className="flex items-start gap-3">
+                <span className="text-gold font-black text-lg">2.</span>
+                <span className="font-bold">
                   <TranslatedText text="Use WASD keys or arrow keys to move around the virtual space" />
                 </span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary font-bold">3.</span>
-                <span>
+              <li className="flex items-start gap-3">
+                <span className="text-gold font-black text-lg">3.</span>
+                <span className="font-bold">
                   <TranslatedText text="Click on other avatars to interact with fellow students" />
                 </span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary font-bold">4.</span>
-                <span>
+              <li className="flex items-start gap-3">
+                <span className="text-gold font-black text-lg">4.</span>
+                <span className="font-bold">
                   <TranslatedText text="Use the chat feature or voice chat to communicate with others" />
                 </span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary font-bold">5.</span>
-                <span>
+              <li className="flex items-start gap-3">
+                <span className="text-gold font-black text-lg">5.</span>
+                <span className="font-bold">
                   <TranslatedText text="Explore the virtual environment and find study spots to collaborate" />
+                </span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-pink font-black text-lg">6.</span>
+                <span className="font-bold">
+                  <TranslatedText text="Click the Whiteboard button to open collaborative drawing tools" />
                 </span>
               </li>
             </ul>

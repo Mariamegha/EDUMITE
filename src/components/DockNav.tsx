@@ -12,7 +12,13 @@ import {
   Glasses, 
   Users, 
   BarChart3,
-  Settings
+  Settings,
+  LayoutGrid,
+  Trophy,
+  Target,
+  Heart,
+  Award,
+  Gamepad2
 } from 'lucide-react';
 import './DockNav.css';
 
@@ -27,9 +33,15 @@ const dockItems: DockItem[] = [
   { icon: <Bot size={24} />, label: 'AI Bot', href: '/ai-bot' },
   { icon: <Map size={24} />, label: 'Roadmap', href: '/roadmap' },
   { icon: <BookOpen size={24} />, label: 'Courses', href: '/courses' },
+  { icon: <LayoutGrid size={24} />, label: 'Workspace', href: '/workspace' },
   { icon: <StickyNote size={24} />, label: 'Notes', href: '/notes' },
   { icon: <Focus size={24} />, label: 'Focus Room', href: '/focus-room' },
   { icon: <Calendar size={24} />, label: 'Study Planner', href: '/study-planner' },
+  { icon: <Trophy size={24} />, label: 'Performance', href: '/performance-tiers' },
+  { icon: <Target size={24} />, label: 'Opportunities', href: '/smart-opportunities' },
+  { icon: <Heart size={24} />, label: 'Wellness', href: '/wellness' },
+  { icon: <Award size={24} />, label: 'Schemes', href: '/schemes' },
+  { icon: <Gamepad2 size={24} />, label: 'Game Center', href: '/game' },
   { icon: <Glasses size={24} />, label: 'Study VR', href: '/study-vr' },
   { icon: <Users size={24} />, label: 'Community', href: '/community' },
   { icon: <BarChart3 size={24} />, label: 'Analytics', href: '/analytics' },

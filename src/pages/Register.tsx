@@ -47,9 +47,9 @@ export default function Register() {
     if (user) {
       toast({
         title: 'Account created!',
-        description: 'Welcome to Edumite!',
+        description: 'Welcome to Edumite! Let\'s get you started.',
       });
-      navigate('/dashboard');
+      navigate('/onboarding');
     }
     setIsLoading(false);
   };

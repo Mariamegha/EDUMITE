@@ -38,7 +38,7 @@
 4. Click **+ CREATE CREDENTIALS → OAuth client ID**
 5. If prompted, configure **OAuth consent screen** first:
    - User Type: **External**
-   - App name: **SYLEDUTECH**
+   - App name: **EDUMITE**
    - User support email: Your email
    - Developer contact: Your email
    - Add scopes: `email`, `profile`, `openid`
@@ -49,7 +49,7 @@
 
 6. Back to **Create OAuth client ID**:
    - Application type: **Web application**
-   - Name: **SYLEDUTECH Web Client**
+   - Name: **EDUMITE Web Client**
 
 7. **Authorized JavaScript origins**:
    ```
@@ -166,4 +166,4 @@ Add to your `.env` file (optional, for reference):
 
 ---
 
-**✨ Google OAuth is now integrated into SYLEDUTECH!**
+**✨ Google OAuth is now integrated into EDUMITE!**

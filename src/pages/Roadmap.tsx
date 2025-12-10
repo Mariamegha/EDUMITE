@@ -1,1044 +1,853 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { createRoadmap, createDetailedRoadmap } from '@/services/roadmapService';
-import { getAvailableRoadmaps, getRoadmapsByCategory, searchRoadmaps, type RoadmapItem } from '@/services/roadmapShService';
-import { getCurrentUserId } from '@/lib/auth';
+import { useSoundPlayer } from '@/hooks/useSoundPlayer';
+// TODO [Phase 35]: Integrate AI-powered roadmap generation
+// import { useAIContext } from '@/hooks/useAIContext';
+// const aiContext = useAIContext({ contextType: 'roadmap' });
+// Use aiContext.sendMessage() to generate personalized learning paths based on goals/skills
 import { TranslatedText } from '@/components/TranslatedText';
-import { useTranslatedText } from '@/hooks/useTranslation';
-import { type DetailedRoadmap } from '@/lib/gemini';
-import { Target, CheckCircle2, Circle, Clock, Loader2, Search, ExternalLink, Sparkles, ArrowRight, ArrowLeft, BookOpen, Video, FileText, Link as LinkIcon, CheckCircle } from 'lucide-react';
-import GridDistortion from '@/components/3D/GridDistortion';
+import { GridScan } from '@/components/3D/GridScan';
+import { ThreeDFallback } from '@/components/3D/ThreeDFallback';
+import {
+  Target,
+  CheckCircle2,
+  Circle,
+  Clock,
+  Sparkles,
+  ArrowRight,
+  BookOpen,
+  Video,
+  FileText,
+  Link as LinkIcon,
+  Zap,
+  Trophy,
+  TrendingUp,
+  Lock,
+  Star,
+  ChevronRight,
+  X,
+  Download,
+  Brain,
+  Plus,
+  LayoutGrid,
+} from 'lucide-react';
+import { MOCK_ROADMAPS } from '@/mocks/roadmaps';
+import type { MockRoadmap, MockMilestone, MockResource } from '@/mocks/roadmaps';
 
-interface Milestone {
-  id: string;
-  title: string;
-  description: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-  estimatedHours: number;
-  completed: boolean;
-}
+// Helper function to get difficulty badge color
+const getDifficultyColor = (difficulty: string) => {
+  switch (difficulty) {
+    case 'easy':
+      return 'bg-green-500/10 text-green-500 border-green-500/20';
+    case 'medium':
+      return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+    case 'hard':
+      return 'bg-red-500/10 text-red-500 border-red-500/20';
+    default:
+      return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+  }
+};
+
+// Helper function to get resource icon
+const getResourceIcon = (type: string) => {
+  switch (type) {
+    case 'video':
+      return <Video className="h-4 w-4" />;
+    case 'article':
+      return <FileText className="h-4 w-4" />;
+    case 'course':
+      return <BookOpen className="h-4 w-4" />;
+    case 'book':
+      return <BookOpen className="h-4 w-4" />;
+    case 'practice':
+      return <Brain className="h-4 w-4" />;
+    default:
+      return <LinkIcon className="h-4 w-4" />;
+  }
+};
 
 export default function Roadmap() {
-  const [activeTab, setActiveTab] = useState<'available' | 'custom'>('available');
-  const [goal, setGoal] = useState('');
-  const [showRoadmap, setShowRoadmap] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [roadmapData, setRoadmapData] = useState<Milestone[]>([]);
-  const [availableRoadmaps, setAvailableRoadmaps] = useState<RoadmapItem[]>([]);
-  const [filteredRoadmaps, setFilteredRoadmaps] = useState<RoadmapItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'role' | 'skill' | 'beginner'>('all');
-  const [isLoadingRoadmaps, setIsLoadingRoadmaps] = useState(true);
-  
-  // Questionnaire state
-  const [questionStep, setQuestionStep] = useState(1);
-  const [questionnaire, setQuestionnaire] = useState({
-    topic: '',
-    skillLevel: '' as 'beginner' | 'intermediate' | 'advanced' | '',
-    duration: '',
-    durationUnit: 'weeks' as 'days' | 'weeks' | 'months',
-    hoursPerDay: '',
-    hoursPerWeek: '',
-  });
-  const [detailedRoadmap, setDetailedRoadmap] = useState<DetailedRoadmap | null>(null);
+  const [selectedRoadmaps, setSelectedRoadmaps] = useState<Set<string>>(new Set());
+  const [activeRoadmap, setActiveRoadmap] = useState<MockRoadmap | null>(null);
+  const [selectedMilestone, setSelectedMilestone] = useState<MockMilestone | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [showRoadmapGrid, setShowRoadmapGrid] = useState(true);
+  const [completedMilestonesByRoadmap, setCompletedMilestonesByRoadmap] = useState<Record<string, Set<string>>>({});
   
   const { toast } = useToast();
+  const { playSound } = useSoundPlayer();
 
-  const completedCount = roadmapData.filter((m) => m.completed).length;
-  const progressPercentage = roadmapData.length > 0 ? (completedCount / roadmapData.length) * 100 : 0;
-
-  const difficultyColors = {
-    easy: 'bg-success text-success-foreground',
-    medium: 'bg-accent text-accent-foreground',
-    hard: 'bg-destructive text-destructive-foreground',
-  };
-
-  const categoryColors = {
-    role: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-    skill: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-    beginner: 'bg-green-500/10 text-green-600 dark:text-green-400',
-  };
-
-  const difficultyBadgeColors = {
-    beginner: 'bg-green-500/10 text-green-600 dark:text-green-400',
-    intermediate: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400',
-    advanced: 'bg-red-500/10 text-red-600 dark:text-red-400',
-  };
-
-  // Translation texts
-  const goalRequiredText = useTranslatedText('Goal required');
-  const pleaseEnterGoalText = useTranslatedText('Please enter a learning goal.');
-  const mustBeLoggedInText = useTranslatedText('You must be logged in to generate a roadmap');
-  const failedToGenerateText = useTranslatedText('Failed to generate roadmap');
-  const roadmapGeneratedText = useTranslatedText('Roadmap generated!');
-  const roadmapReadyText = useTranslatedText('Your personalized learning roadmap is ready.');
-  const errorText = useTranslatedText('Error');
-  const failedToGenerateTryAgainText = useTranslatedText('Failed to generate roadmap. Please try again.');
-  const placeholderText = useTranslatedText("e.g., Master React and build web applications");
-  const searchPlaceholderText = useTranslatedText('Search roadmaps...');
-
-  // Load available roadmaps
+  // Load saved roadmap selections and progress from localStorage
   useEffect(() => {
-    const loadRoadmaps = async () => {
-      setIsLoadingRoadmaps(true);
+    const savedSelections = localStorage.getItem('selected_roadmaps');
+    if (savedSelections) {
       try {
-        const roadmaps = await getAvailableRoadmaps();
-        setAvailableRoadmaps(roadmaps);
-        setFilteredRoadmaps(roadmaps);
-      } catch (error) {
-        console.error('Error loading roadmaps:', error);
-        toast({
-          title: errorText,
-          description: 'Failed to load available roadmaps',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoadingRoadmaps(false);
+        const selections = JSON.parse(savedSelections);
+        setSelectedRoadmaps(new Set(selections));
+      } catch (e) {
+        console.error('Error loading roadmap selections:', e);
       }
-    };
-    loadRoadmaps();
+    }
+
+    // Load progress for all roadmaps
+    const progressData: Record<string, Set<string>> = {};
+    MOCK_ROADMAPS.forEach(roadmap => {
+      const savedProgress = localStorage.getItem(`roadmap_progress_${roadmap.id}`);
+      if (savedProgress) {
+        try {
+          const progress = JSON.parse(savedProgress);
+          progressData[roadmap.id] = new Set(progress.completedMilestones || []);
+        } catch (e) {
+          console.error('Error loading roadmap progress:', e);
+        }
+      } else {
+        // Set initial completed milestones based on mock data
+        const initialCompleted = roadmap.milestones
+          .filter(m => m.completed)
+          .map(m => m.id);
+        progressData[roadmap.id] = new Set(initialCompleted);
+      }
+    });
+    setCompletedMilestonesByRoadmap(progressData);
   }, []);
 
-  // Filter roadmaps based on category and search
-  useEffect(() => {
-    const filterRoadmaps = async () => {
-      let filtered = selectedCategory === 'all' 
-        ? availableRoadmaps 
-        : await getRoadmapsByCategory(selectedCategory);
-      
-      if (searchQuery.trim()) {
-        filtered = await searchRoadmaps(searchQuery);
-        // Also filter by category if not 'all'
-        if (selectedCategory !== 'all') {
-          filtered = filtered.filter((r) => r.category === selectedCategory);
-        }
-      }
-      
-      setFilteredRoadmaps(filtered);
-    };
+  // Toggle roadmap selection
+  const handleToggleRoadmap = (roadmapId: string) => {
+    const newSelections = new Set(selectedRoadmaps);
+    if (newSelections.has(roadmapId)) {
+      newSelections.delete(roadmapId);
+    } else {
+      newSelections.add(roadmapId);
+    }
+    setSelectedRoadmaps(newSelections);
     
-    filterRoadmaps();
-  }, [searchQuery, selectedCategory, availableRoadmaps]);
-
-  const generateRoadmap = async () => {
-    if (!goal.trim()) {
-      toast({
-        title: goalRequiredText,
-        description: pleaseEnterGoalText,
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const userId = await getCurrentUserId();
-      if (!userId) {
-        throw new Error(mustBeLoggedInText);
-      }
-
-      const { roadmap, error } = await createRoadmap(userId, goal);
-      
-      if (error) throw new Error(error);
-      if (!roadmap) throw new Error(failedToGenerateText);
-
-      setRoadmapData(roadmap.milestones as Milestone[]);
-      setShowRoadmap(true);
-      setActiveTab('custom');
-      
-      toast({
-        title: roadmapGeneratedText,
-        description: roadmapReadyText,
-      });
-    } catch (error: any) {
-      toast({
-        title: errorText,
-        description: error.message || failedToGenerateTryAgainText,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGenerating(false);
-    }
+    // Save selections
+    localStorage.setItem('selected_roadmaps', JSON.stringify(Array.from(newSelections)));
   };
 
-  const handleQuestionnaireNext = () => {
-    if (questionStep === 1 && !questionnaire.topic.trim()) {
-      toast({
-        title: errorText,
-        description: 'Please enter a skill or topic',
-        variant: 'destructive',
-      });
-      return;
-    }
-    if (questionStep === 2 && !questionnaire.skillLevel) {
-      toast({
-        title: errorText,
-        description: 'Please select your skill level',
-        variant: 'destructive',
-      });
-      return;
-    }
-    if (questionStep === 3 && (!questionnaire.duration || parseInt(questionnaire.duration) <= 0)) {
-      toast({
-        title: errorText,
-        description: 'Please enter a valid duration',
-        variant: 'destructive',
-      });
-      return;
-    }
-    if (questionStep === 4) {
-      const hasHoursPerDay = questionnaire.hoursPerDay && parseInt(questionnaire.hoursPerDay) > 0;
-      const hasHoursPerWeek = questionnaire.hoursPerWeek && parseInt(questionnaire.hoursPerWeek) > 0;
-      if (!hasHoursPerDay && !hasHoursPerWeek) {
-        toast({
-          title: errorText,
-          description: 'Please enter hours per day or per week',
-          variant: 'destructive',
-        });
-        return;
-      }
-    }
-    setQuestionStep(questionStep + 1);
+  // View a specific roadmap
+  const handleViewRoadmap = (roadmap: MockRoadmap) => {
+    setActiveRoadmap(roadmap);
+    setShowRoadmapGrid(false);
   };
 
-  const handleQuestionnaireBack = () => {
-    if (questionStep > 1) {
-      setQuestionStep(questionStep - 1);
-    }
+  // Go back to grid view
+  const handleBackToGrid = () => {
+    setShowRoadmapGrid(true);
+    setActiveRoadmap(null);
   };
+  // Handle milestone completion
+  const handleCompleteMilestone = (roadmapId: string, milestoneId: string) => {
+    const newCompleted = new Set(completedMilestonesByRoadmap[roadmapId] || new Set());
+    newCompleted.add(milestoneId);
+    
+    const updatedProgress = {
+      ...completedMilestonesByRoadmap,
+      [roadmapId]: newCompleted
+    };
+    setCompletedMilestonesByRoadmap(updatedProgress);
 
-  const generateDetailedRoadmapFromQuestionnaire = async () => {
-    setIsGenerating(true);
-    try {
-      const userId = await getCurrentUserId();
-      if (!userId) {
-        throw new Error(mustBeLoggedInText);
-      }
+    // Save progress
+    const progressData = {
+      completedMilestones: Array.from(newCompleted),
+      lastUpdated: new Date().toISOString(),
+    };
+    localStorage.setItem(`roadmap_progress_${roadmapId}`, JSON.stringify(progressData));
 
-      const roadmapQuestionnaire = {
-        topic: questionnaire.topic,
-        skillLevel: questionnaire.skillLevel as 'beginner' | 'intermediate' | 'advanced',
-        duration: parseInt(questionnaire.duration),
-        durationUnit: questionnaire.durationUnit,
-        hoursPerDay: questionnaire.hoursPerDay ? parseInt(questionnaire.hoursPerDay) : undefined,
-        hoursPerWeek: questionnaire.hoursPerWeek ? parseInt(questionnaire.hoursPerWeek) : undefined,
-      };
+    // Play success sound
+    playSound('success');
 
-      const { detailedRoadmap: generatedRoadmap, error } = await createDetailedRoadmap(userId, roadmapQuestionnaire);
-      
-      if (error) throw new Error(error);
-      if (!generatedRoadmap) throw new Error(failedToGenerateText);
-
-      setDetailedRoadmap(generatedRoadmap);
-      setRoadmapData(generatedRoadmap.stages.map((stage) => ({
-        id: stage.id,
-        title: stage.title,
-        description: stage.description,
-        difficulty: stage.difficulty,
-        estimatedHours: stage.estimatedHours,
-        completed: stage.completed,
-      })));
-      setShowRoadmap(true);
-      setQuestionStep(0); // Hide questionnaire
-      
-      toast({
-        title: roadmapGeneratedText,
-        description: roadmapReadyText,
-      });
-    } catch (error: any) {
-      toast({
-        title: errorText,
-        description: error.message || failedToGenerateTryAgainText,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const resetQuestionnaire = () => {
-    setQuestionStep(1);
-    setQuestionnaire({
-      topic: '',
-      skillLevel: '',
-      duration: '',
-      durationUnit: 'weeks',
-      hoursPerDay: '',
-      hoursPerWeek: '',
+    toast({
+      title: 'Milestone Completed!',
+      description: `You've earned XP. Keep going!`,
     });
-    setDetailedRoadmap(null);
-    setShowRoadmap(false);
+
+    // Close drawer
+    setIsDrawerOpen(false);
   };
 
-  const handleViewRoadmap = (roadmap: RoadmapItem) => {
-    window.open(roadmap.url, '_blank');
+  // Open milestone drawer
+  const handleMilestoneClick = (milestone: MockMilestone) => {
+    setSelectedMilestone(milestone);
+    setIsDrawerOpen(true);
   };
+
+  // Get completed milestones for active roadmap
+  const getCompletedMilestones = (roadmapId: string): Set<string> => {
+    return completedMilestonesByRoadmap[roadmapId] || new Set();
+  };
+
+  // Calculate progress for a roadmap
+  const calculateProgress = (roadmap: MockRoadmap) => {
+    const completedMilestones = getCompletedMilestones(roadmap.id);
+    const totalMilestones = roadmap.milestones.length;
+    const completedCount = completedMilestones.size;
+    return totalMilestones > 0 ? (completedCount / totalMilestones) * 100 : 0;
+  };
+
+  // Get next milestone for a roadmap
+  const getNextMilestone = (roadmap: MockRoadmap): MockMilestone | null => {
+    const completedMilestones = getCompletedMilestones(roadmap.id);
+    return roadmap.milestones.find(m => !completedMilestones.has(m.id)) || null;
+  };
+
+  // Get selected roadmap objects
+  const selectedRoadmapObjects = MOCK_ROADMAPS.filter(r => selectedRoadmaps.has(r.id));
+
+  // Calculate stats for active roadmap
+  const activeRoadmapStats = activeRoadmap ? {
+    totalMilestones: activeRoadmap.milestones.length,
+    completedCount: getCompletedMilestones(activeRoadmap.id).size,
+    progressPercentage: calculateProgress(activeRoadmap),
+    nextMilestone: getNextMilestone(activeRoadmap)
+  } : null;
 
   return (
-    <div className="relative min-h-screen bg-deepblack">
-      {/* Hero Banner with GridDistortion */}
-      <div className="relative h-[400px] w-full overflow-hidden border-b-4 border-gold">
-        <GridDistortion
-          imageSrc="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=1920&q=80"
-          rippleSpeed={0.08}
-          dampening={0.92}
-          mouseInfluence={0.7}
-        />
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }} 
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen bg-background"
+    >
+      {/* Hero Header */}
+      <div className="relative border-b-4 border-black bg-gradient-to-br from-[#C9B458]/10 via-[#C27BA0]/10 to-[#6DAEDB]/10 overflow-hidden">
+        <div className="absolute inset-0 opacity-30">
+          <ThreeDFallback fallbackColor="from-[#C9B458]/5 to-[#C27BA0]/5">
+            <GridScan />
+          </ThreeDFallback>
+        </div>
+        
+        <div className="container mx-auto px-4 py-12 relative z-10">
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-6"
           >
-            <Target className="h-16 w-16 text-gold mx-auto mb-4" />
-            <h1 className="text-6xl font-black uppercase text-gold drop-shadow-[0_0_20px_rgba(255,215,0,0.5)]">
-              <TranslatedText text="Learning Roadmaps" />
-            </h1>
-            <p className="text-xl font-bold text-white mt-4 uppercase">
-              <TranslatedText text="Chart Your Path to Mastery" />
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-3">Learning Roadmaps</h1>
+                <p className="text-lg text-muted-foreground max-w-2xl">
+                  {showRoadmapGrid 
+                    ? 'Select roadmaps to start your learning journey. Track milestones, earn XP, and level up your skills.'
+                    : 'Follow structured learning paths to achieve your goals. Complete milestones and track your progress.'
+                  }
+                </p>
+              </div>
+              
+              {!showRoadmapGrid && (
+                <Button
+                  onClick={handleBackToGrid}
+                  variant="outline"
+                  className="border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  <LayoutGrid className="mr-2 h-4 w-4" />
+                  All Roadmaps
+                </Button>
+              )}
+            </div>
+
+            {/* Stats Summary */}
+            {selectedRoadmaps.size > 0 && showRoadmapGrid && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-[#C9B458]/10 border-2 border-black flex items-center justify-center">
+                        <Target className="h-5 w-5 text-[#C9B458]" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Active Roadmaps</p>
+                        <p className="text-2xl font-bold">{selectedRoadmaps.size}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-green-500/10 border-2 border-black flex items-center justify-center">
+                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total Milestones</p>
+                        <p className="text-2xl font-bold">
+                          {selectedRoadmapObjects.reduce((acc, r) => acc + getCompletedMilestones(r.id).size, 0)}/
+                          {selectedRoadmapObjects.reduce((acc, r) => acc + r.milestones.length, 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-[#C27BA0]/10 border-2 border-black flex items-center justify-center">
+                        <Zap className="h-5 w-5 text-[#C27BA0]" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Total XP</p>
+                        <p className="text-2xl font-bold text-[#C9B458]">
+                          {selectedRoadmapObjects.reduce((acc, r) => acc + getCompletedMilestones(r.id).size * 100, 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </motion.div>
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'available' | 'custom')} className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2 border-4 border-black shadow-gold-brutal bg-obsidian">
-          <TabsTrigger 
-            value="available"
-            className="data-[state=active]:bg-gold data-[state=active]:text-black font-black uppercase"
-          >
-            <TranslatedText text="Available Roadmaps" />
-          </TabsTrigger>
-          <TabsTrigger 
-            value="custom"
-            className="data-[state=active]:bg-pink data-[state=active]:text-white font-black uppercase"
-          >
-            <TranslatedText text="Generate Custom" />
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Available Roadmaps Tab */}
-        <TabsContent value="available" className="mt-6">
-          {/* Search and Filter */}
-          <Card className="mb-6 border-4 border-black shadow-gold-brutal bg-obsidian">
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gold" />
-                  <Input
-                    placeholder={searchPlaceholderText}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 border-2 border-gold font-bold text-white placeholder:text-white/50 bg-black/50"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedCategory('all')}
-                    className={selectedCategory === 'all' ? 'bg-gold text-black border-2 border-black shadow-gold-medium font-black' : 'border-2 border-gold text-gold font-bold'}
-                  >
-                    <TranslatedText text="All" />
-                  </Button>
-                  <Button
-                    variant={selectedCategory === 'role' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedCategory('role')}
-                    className={selectedCategory === 'role' ? 'bg-gold text-black border-2 border-black shadow-gold-medium font-black' : 'border-2 border-gold text-gold font-bold'}
-                  >
-                    <TranslatedText text="Role Based" />
-                  </Button>
-                  <Button
-                    variant={selectedCategory === 'skill' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedCategory('skill')}
-                    className={selectedCategory === 'skill' ? 'bg-gold text-black border-2 border-black shadow-gold-medium font-black' : 'border-2 border-gold text-gold font-bold'}
-                  >
-                    <TranslatedText text="Skill Based" />
-                  </Button>
-                  <Button
-                    variant={selectedCategory === 'beginner' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedCategory('beginner')}
-                    className={selectedCategory === 'beginner' ? 'bg-gold text-black border-2 border-black shadow-gold-medium font-black' : 'border-2 border-gold text-gold font-bold'}
-                  >
-                    <TranslatedText text="Beginner" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Roadmaps Grid */}
-          {isLoadingRoadmaps ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : filteredRoadmaps.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center">
-                <p className="text-muted-foreground">
-                  <TranslatedText text="No roadmaps found. Try a different search or category." />
+        {showRoadmapGrid ? (
+          /* Roadmap Grid View */
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Available Roadmaps</h2>
+              {selectedRoadmaps.size > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedRoadmaps.size} roadmap{selectedRoadmaps.size !== 1 ? 's' : ''} selected
                 </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredRoadmaps.map((roadmap, index) => (
-                <motion.div
-                  key={roadmap.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card className="flex h-full flex-col transition-all hover:shadow-lg">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="mb-2">{roadmap.title}</CardTitle>
-                          <CardDescription className="line-clamp-2">
-                            {roadmap.description}
-                          </CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="flex flex-1 flex-col gap-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Badge className={categoryColors[roadmap.category]}>
-                          <TranslatedText text={roadmap.category} />
-                        </Badge>
-                        <Badge className={difficultyBadgeColors[roadmap.difficulty]}>
-                          <TranslatedText text={roadmap.difficulty} />
-                        </Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {roadmap.tags.slice(0, 3).map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                        {roadmap.tags.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{roadmap.tags.length - 3}
-                          </Badge>
-                        )}
-                      </div>
-                      <Button
-                        className="mt-auto"
-                        variant="outline"
-                        onClick={() => handleViewRoadmap(roadmap)}
-                      >
-                        <TranslatedText text="View Roadmap" />
-                        <ExternalLink className="ml-2 h-4 w-4" />
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+              )}
             </div>
-          )}
-        </TabsContent>
 
-        {/* Custom Roadmap Generation Tab */}
-        <TabsContent value="custom" className="mt-6">
-          {questionStep > 0 && !showRoadmap ? (
-            /* Questionnaire Steps */
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  <TranslatedText text="Generate Custom Roadmap" />
-                </CardTitle>
-                <CardDescription>
-                  <TranslatedText text="Answer a few questions to get a personalized learning roadmap" />
-                </CardDescription>
-                <div className="mt-4">
-                  <Progress value={(questionStep / 5) * 100} className="h-2" />
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Step {questionStep} of 5
-                  </p>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <AnimatePresence mode="wait">
-                  {/* Step 1: Topic */}
-                  {questionStep === 1 && (
-                    <motion.div
-                      key="step1"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="space-y-4"
-                    >
-                      <div>
-                        <Label htmlFor="topic" className="text-base font-semibold">
-                          <TranslatedText text="What skill or topic do you want to learn?" />
-                        </Label>
-                        <Input
-                          id="topic"
-                          placeholder={placeholderText}
-                          value={questionnaire.topic}
-                          onChange={(e) => setQuestionnaire({ ...questionnaire, topic: e.target.value })}
-                          onKeyPress={(e) => e.key === 'Enter' && handleQuestionnaireNext()}
-                          className="mt-2"
-                        />
-                      </div>
-                    </motion.div>
-                  )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {MOCK_ROADMAPS.map((roadmap, index) => {
+                const isSelected = selectedRoadmaps.has(roadmap.id);
+                const progress = calculateProgress(roadmap);
+                const completedMilestones = getCompletedMilestones(roadmap.id);
+                const nextMilestone = getNextMilestone(roadmap);
 
-                  {/* Step 2: Skill Level */}
-                  {questionStep === 2 && (
-                    <motion.div
-                      key="step2"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="space-y-4"
-                    >
-                      <div>
-                        <Label className="text-base font-semibold">
-                          <TranslatedText text="What is your current skill level?" />
-                        </Label>
-                        <div className="mt-4 grid gap-3 md:grid-cols-3">
-                          {(['beginner', 'intermediate', 'advanced'] as const).map((level) => (
-                            <Button
-                              key={level}
-                              variant={questionnaire.skillLevel === level ? 'default' : 'outline'}
-                              className="h-auto flex-col gap-2 py-6"
-                              onClick={() => setQuestionnaire({ ...questionnaire, skillLevel: level })}
-                            >
-                              <span className="text-lg font-semibold capitalize">
-                                <TranslatedText text={level} />
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {level === 'beginner' && <TranslatedText text="Starting from basics" />}
-                                {level === 'intermediate' && <TranslatedText text="Some experience" />}
-                                {level === 'advanced' && <TranslatedText text="Looking to master" />}
-                              </span>
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Step 3: Duration */}
-                  {questionStep === 3 && (
-                    <motion.div
-                      key="step3"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="space-y-4"
-                    >
-                      <div>
-                        <Label className="text-base font-semibold">
-                          <TranslatedText text="In how much time do you want to complete this course?" />
-                        </Label>
-                        <div className="mt-4 flex gap-4">
-                          <Input
-                            type="number"
-                            min="1"
-                            placeholder="e.g., 4"
-                            value={questionnaire.duration}
-                            onChange={(e) => setQuestionnaire({ ...questionnaire, duration: e.target.value })}
-                            className="flex-1"
-                          />
-                          <Select
-                            value={questionnaire.durationUnit}
-                            onValueChange={(value: 'days' | 'weeks' | 'months') =>
-                              setQuestionnaire({ ...questionnaire, durationUnit: value })
-                            }
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="days"><TranslatedText text="Days" /></SelectItem>
-                              <SelectItem value="weeks"><TranslatedText text="Weeks" /></SelectItem>
-                              <SelectItem value="months"><TranslatedText text="Months" /></SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Step 4: Time Commitment */}
-                  {questionStep === 4 && (
-                    <motion.div
-                      key="step4"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="space-y-4"
-                    >
-                      <div>
-                        <Label className="text-base font-semibold">
-                          <TranslatedText text="How many hours per day or per week can you commit?" />
-                        </Label>
-                        <div className="mt-4 space-y-4">
-                          <div className="flex items-center gap-4">
-                            <Label htmlFor="hoursPerDay" className="w-32">
-                              <TranslatedText text="Hours per day:" />
-                            </Label>
-                            <Input
-                              id="hoursPerDay"
-                              type="number"
-                              min="0"
-                              max="24"
-                              placeholder="e.g., 2"
-                              value={questionnaire.hoursPerDay}
-                              onChange={(e) => setQuestionnaire({ ...questionnaire, hoursPerDay: e.target.value, hoursPerWeek: '' })}
-                              className="flex-1"
-                            />
-                          </div>
-                          <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                              <span className="w-full border-t" />
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                              <span className="bg-background px-2 text-muted-foreground">
-                                <TranslatedText text="OR" />
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <Label htmlFor="hoursPerWeek" className="w-32">
-                              <TranslatedText text="Hours per week:" />
-                            </Label>
-                            <Input
-                              id="hoursPerWeek"
-                              type="number"
-                              min="0"
-                              max="168"
-                              placeholder="e.g., 10"
-                              value={questionnaire.hoursPerWeek}
-                              onChange={(e) => setQuestionnaire({ ...questionnaire, hoursPerWeek: e.target.value, hoursPerDay: '' })}
-                              className="flex-1"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Step 5: Review & Generate */}
-                  {questionStep === 5 && (
-                    <motion.div
-                      key="step5"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="space-y-4"
-                    >
-                      <div>
-                        <Label className="text-base font-semibold">
-                          <TranslatedText text="Review your answers" />
-                        </Label>
-                        <Card className="mt-4">
-                          <CardContent className="pt-6">
-                            <div className="space-y-3">
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground"><TranslatedText text="Topic:" /></span>
-                                <span className="font-medium">{questionnaire.topic}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground"><TranslatedText text="Skill Level:" /></span>
-                                <span className="font-medium capitalize"><TranslatedText text={questionnaire.skillLevel} /></span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground"><TranslatedText text="Duration:" /></span>
-                                <span className="font-medium">
-                                  {questionnaire.duration} <TranslatedText text={questionnaire.durationUnit} />
-                                </span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground"><TranslatedText text="Time Commitment:" /></span>
-                                <span className="font-medium">
-                                  {questionnaire.hoursPerDay
-                                    ? `${questionnaire.hoursPerDay} hours/day`
-                                    : questionnaire.hoursPerWeek
-                                    ? `${questionnaire.hoursPerWeek} hours/week`
-                                    : 'Not specified'}
-                                </span>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                        <Button
-                          onClick={generateDetailedRoadmapFromQuestionnaire}
-                          disabled={isGenerating}
-                          className="mt-6 w-full"
-                          size="lg"
-                        >
-                          {isGenerating ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              <TranslatedText text="Generating Roadmap..." />
-                            </>
-                          ) : (
-                            <>
-                              <Sparkles className="mr-2 h-4 w-4" />
-                              <TranslatedText text="Generate My Roadmap" />
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Navigation Buttons */}
-                <div className="mt-6 flex justify-between">
-                  <Button
-                    variant="outline"
-                    onClick={handleQuestionnaireBack}
-                    disabled={questionStep === 1}
-                  >
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    <TranslatedText text="Back" />
-                  </Button>
-                  {questionStep < 5 && (
-                    <Button onClick={handleQuestionnaireNext}>
-                      <TranslatedText text="Next" />
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ) : showRoadmap && detailedRoadmap ? (
-            /* Detailed Roadmap Display */
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-2xl">{detailedRoadmap.title}</CardTitle>
-                      <CardDescription className="mt-2">
-                        <div className="grid gap-2 md:grid-cols-2">
-                          <div><TranslatedText text="Skill:" /> {detailedRoadmap.userSummary.skill}</div>
-                          <div><TranslatedText text="Level:" /> <span className="capitalize">{detailedRoadmap.userSummary.level}</span></div>
-                          <div><TranslatedText text="Timeline:" /> {detailedRoadmap.userSummary.timeline}</div>
-                          <div><TranslatedText text="Commitment:" /> {detailedRoadmap.userSummary.commitment}</div>
-                        </div>
-                      </CardDescription>
-                    </div>
-                    <Button variant="outline" onClick={resetQuestionnaire}>
-                      <TranslatedText text="Create New" />
-                    </Button>
-                  </div>
-                </CardHeader>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle><TranslatedText text="Your Progress" /></CardTitle>
-                  <CardDescription>
-                    {completedCount} <TranslatedText text="of" /> {roadmapData.length} <TranslatedText text="stages completed" />
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Progress value={progressPercentage} className="mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    {Math.round(progressPercentage)}% <TranslatedText text="complete" />
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Stages */}
-              <div className="space-y-4">
-                {detailedRoadmap.stages.map((stage, index) => (
+                return (
                   <motion.div
-                    key={stage.id}
+                    key={roadmap.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <Card className={`transition-all ${stage.completed ? 'border-success' : ''}`}>
+                    <Card className={`border-4 border-black transition-all ${
+                      isSelected
+                        ? 'shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-gradient-to-br from-[#C9B458]/5 to-[#C27BA0]/5'
+                        : 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]'
+                    }`}>
                       <CardHeader>
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => handleToggleRoadmap(roadmap.id)}
+                            className="mt-1 border-2 border-black data-[state=checked]:bg-[#C9B458] data-[state=checked]:border-[#C9B458]"
+                          />
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <Badge variant="outline">{stage.stage}</Badge>
-                              <Badge className={difficultyColors[stage.difficulty]}>
-                                <TranslatedText text={stage.difficulty} />
+                              <Badge className={`${getDifficultyColor(roadmap.difficulty)} border-2`}>
+                                {roadmap.difficulty.toUpperCase()}
                               </Badge>
-                              <Badge variant="outline" className="gap-1">
-                                <Clock className="h-3 w-3" />
-                                {stage.estimatedHours}h
+                              <Badge variant="outline" className="border-2 border-black">
+                                {roadmap.category}
                               </Badge>
                             </div>
-                            <CardTitle className="text-xl">{stage.title}</CardTitle>
-                            <CardDescription className="mt-2">{stage.description}</CardDescription>
+                            <CardTitle className="text-xl mb-2">{roadmap.title}</CardTitle>
+                            <CardDescription className="line-clamp-2">{roadmap.description}</CardDescription>
                           </div>
-                          <Button
-                            variant={stage.completed ? 'outline' : 'default'}
-                            size="sm"
-                            onClick={() => {
-                              const updatedStages = detailedRoadmap.stages.map((s) =>
-                                s.id === stage.id ? { ...s, completed: !s.completed } : s
-                              );
-                              setDetailedRoadmap({ ...detailedRoadmap, stages: updatedStages });
-                              setRoadmapData(updatedStages.map((s) => ({
-                                id: s.id,
-                                title: s.title,
-                                description: s.description,
-                                difficulty: s.difficulty,
-                                estimatedHours: s.estimatedHours,
-                                completed: s.completed,
-                              })));
-                            }}
-                          >
-                            {stage.completed ? <CheckCircle className="mr-2 h-4 w-4" /> : <Circle className="mr-2 h-4 w-4" />}
-                            {stage.completed ? <TranslatedText text="Completed" /> : <TranslatedText text="Mark Complete" />}
-                          </Button>
                         </div>
                       </CardHeader>
+                      
                       <CardContent className="space-y-4">
-                        {/* Topics */}
-                        {stage.topics.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold mb-2 flex items-center gap-2">
-                              <BookOpen className="h-4 w-4" />
-                              <TranslatedText text="Topics to Learn" />
-                            </h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-6">
-                              {stage.topics.map((topic, i) => (
-                                <li key={i}>{topic}</li>
-                              ))}
-                            </ul>
+                        {/* Progress */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Progress</span>
+                            <span className="font-bold text-[#C9B458]">{Math.round(progress)}%</span>
+                          </div>
+                          <div className="h-2 bg-muted border-2 border-black rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-[#C9B458] to-[#C27BA0] transition-all duration-500"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Target className="h-4 w-4" />
+                            <span>{completedMilestones.size}/{roadmap.milestones.length} milestones</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Clock className="h-4 w-4" />
+                            <span>{roadmap.estimatedDuration}</span>
+                          </div>
+                        </div>
+
+                        {/* Next Milestone */}
+                        {nextMilestone && (
+                          <div className="p-3 rounded-lg bg-muted border-2 border-black">
+                            <p className="text-xs text-muted-foreground mb-1">Next Milestone</p>
+                            <p className="text-sm font-semibold line-clamp-1">{nextMilestone.title}</p>
                           </div>
                         )}
 
-                        {/* Exercises */}
-                        {stage.exercises.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold mb-2"><TranslatedText text="Exercises" /></h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-6">
-                              {stage.exercises.map((exercise, i) => (
-                                <li key={i}>{exercise}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Projects */}
-                        {stage.projects && stage.projects.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold mb-2"><TranslatedText text="Projects" /></h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-6">
-                              {stage.projects.map((project, i) => (
-                                <li key={i}>{project}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {/* Resources */}
-                        {stage.resources.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold mb-2 flex items-center gap-2">
-                              <LinkIcon className="h-4 w-4" />
-                              <TranslatedText text="Resources" />
-                            </h4>
-                            <div className="grid gap-2 md:grid-cols-2">
-                              {stage.resources.map((resource, i) => (
-                                <div key={i} className="flex items-start gap-2 p-2 rounded-md bg-muted/50">
-                                  {resource.type === 'video' && <Video className="h-4 w-4 mt-0.5 text-primary" />}
-                                  {resource.type === 'documentation' && <FileText className="h-4 w-4 mt-0.5 text-primary" />}
-                                  {resource.type === 'practice' && <BookOpen className="h-4 w-4 mt-0.5 text-primary" />}
-                                  {resource.type === 'article' && <FileText className="h-4 w-4 mt-0.5 text-primary" />}
-                                  <div className="flex-1">
-                                    <div className="font-medium text-sm">{resource.title}</div>
-                                    {resource.description && (
-                                      <div className="text-xs text-muted-foreground">{resource.description}</div>
-                                    )}
-                                    {resource.url && (
-                                      <a
-                                        href={resource.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
-                                      >
-                                        <TranslatedText text="Visit" /> <ExternalLink className="h-3 w-3" />
-                                      </a>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                        {/* Action Button */}
+                        <Button
+                          onClick={() => handleViewRoadmap(roadmap)}
+                          className="w-full bg-[#C9B458] hover:bg-[#B8A347] text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                          disabled={!isSelected}
+                        >
+                          {isSelected ? (
+                            <>
+                              View Roadmap
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Select to Start
+                            </>
+                          )}
+                        </Button>
                       </CardContent>
                     </Card>
                   </motion.div>
-                ))}
-              </div>
-
-              {/* Final Project */}
-              {detailedRoadmap.finalProject && (
-                <Card className="border-primary/20 bg-primary/5">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Target className="h-5 w-5 text-primary" />
-                      <TranslatedText text="Final Project" />
-                    </CardTitle>
-                    <CardDescription>{detailedRoadmap.finalProject.title}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p>{detailedRoadmap.finalProject.description}</p>
-                    {detailedRoadmap.finalProject.requirements.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold mb-2"><TranslatedText text="Requirements" /></h4>
-                        <ul className="list-disc list-inside space-y-1 text-sm ml-6">
-                          {detailedRoadmap.finalProject.requirements.map((req, i) => (
-                            <li key={i}>{req}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    <Badge className={difficultyColors[detailedRoadmap.finalProject.complexity]}>
-                      <TranslatedText text={detailedRoadmap.finalProject.complexity} /> <TranslatedText text="Complexity" />
-                    </Badge>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Resource List */}
-              {detailedRoadmap.resourceList && detailedRoadmap.resourceList.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle><TranslatedText text="Additional Resources" /></CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-6">
-                      {detailedRoadmap.resourceList.map((category, i) => (
-                        <div key={i}>
-                          <h4 className="font-semibold mb-3">{category.category}</h4>
-                          <div className="space-y-2">
-                            {category.items.map((item, j) => (
-                              <div key={j} className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50">
-                                <LinkIcon className="h-4 w-4 mt-0.5 text-primary" />
-                                <div className="flex-1">
-                                  <div className="font-medium">{item.title}</div>
-                                  <div className="text-sm text-muted-foreground">{item.description}</div>
-                                  {item.url && (
-                                    <a
-                                      href={item.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
-                                    >
-                                      <TranslatedText text="Visit" /> <ExternalLink className="h-3 w-3" />
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                );
+              })}
             </div>
-          ) : null}
-
-          {/* Generated Roadmap Display */}
-          {showRoadmap && (
-            <>
-              <Card className="mb-8">
+          </div>
+        ) : activeRoadmap && activeRoadmapStats ? (
+          /* Individual Roadmap View */
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Sidebar: Progress & Stats */}
+            <div className="space-y-6">
+              {/* Progress Card */}
+              <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
                 <CardHeader>
-                  <CardTitle><TranslatedText text="Your Progress" /></CardTitle>
-                  <CardDescription>
-                    {completedCount} <TranslatedText text="of" /> {roadmapData.length} <TranslatedText text="milestones completed" />
-                  </CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <Target className="h-5 w-5 text-[#C9B458]" />
+                    Your Progress
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <Progress value={progressPercentage} className="mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    {Math.round(progressPercentage)}% <TranslatedText text="complete" />
-                  </p>
+                <CardContent className="space-y-6">
+                  {/* Circular Progress */}
+                  <div className="flex items-center justify-center">
+                    <div className="relative w-32 h-32">
+                      <svg className="transform -rotate-90 w-32 h-32">
+                        <circle
+                          cx="64"
+                          cy="64"
+                          r="56"
+                          stroke="currentColor"
+                          strokeWidth="8"
+                          fill="none"
+                          className="text-muted"
+                        />
+                        <motion.circle
+                          cx="64"
+                          cy="64"
+                          r="56"
+                          stroke="#C9B458"
+                          strokeWidth="8"
+                          fill="none"
+                          strokeLinecap="round"
+                          initial={{ strokeDashoffset: 352 }}
+                          animate={{ strokeDashoffset: 352 - (352 * activeRoadmapStats.progressPercentage) / 100 }}
+                          transition={{ duration: 1, ease: 'easeOut' }}
+                          style={{
+                            strokeDasharray: 352,
+                          }}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-3xl font-bold">{Math.round(activeRoadmapStats.progressPercentage)}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>Completed</span>
+                      </div>
+                      <p className="text-2xl font-bold">{activeRoadmapStats.completedCount}/{activeRoadmapStats.totalMilestones}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                        <Zap className="h-4 w-4" />
+                        <span>XP Earned</span>
+                      </div>
+                      <p className="text-2xl font-bold text-[#C9B458]">{activeRoadmapStats.completedCount * 100}</p>
+                    </div>
+                  </div>
+
+                  <Separator className="bg-black" />
+
+                  {/* Roadmap Info */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Difficulty</span>
+                      <Badge className={`${getDifficultyColor(activeRoadmap.difficulty)} border-2`}>
+                        {activeRoadmap.difficulty.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Duration</span>
+                      <span className="font-semibold">{activeRoadmap.estimatedDuration}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Category</span>
+                      <span className="font-semibold">{activeRoadmap.category}</span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
-              <div className="space-y-4">
-                {roadmapData.length === 0 && showRoadmap && (
-                  <Card>
-                    <CardContent className="p-6 text-center text-muted-foreground">
-                      <TranslatedText text='No roadmap generated yet. Enter a goal and click "Generate Roadmap".' />
-                    </CardContent>
-                  </Card>
-                )}
-                {roadmapData.map((milestone, index) => (
-                  <motion.div
-                    key={milestone.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                  >
-                    <Card
-                      className={`transition-all ${
-                        milestone.completed ? 'border-success' : ''
-                      }`}
+              {/* Next Milestone Card */}
+              {activeRoadmapStats.nextMilestone && (
+                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-gradient-to-br from-[#C9B458]/5 to-[#C27BA0]/5">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-[#C9B458]" />
+                      Next Milestone
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <h3 className="font-bold">{activeRoadmapStats.nextMilestone.title}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {activeRoadmapStats.nextMilestone.description}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        <span>{activeRoadmapStats.nextMilestone.estimatedHours}h</span>
+                      </div>
+                      <Badge className={`${getDifficultyColor(activeRoadmapStats.nextMilestone.difficulty)} border-2`}>
+                        {activeRoadmapStats.nextMilestone.difficulty}
+                      </Badge>
+                    </div>
+                    <Button
+                      className="w-full bg-[#C9B458] hover:bg-[#B8A347] text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      onClick={() => handleMilestoneClick(activeRoadmapStats.nextMilestone!)}
                     >
-                      <CardContent className="flex items-start gap-4 p-6">
-                        <div className="mt-1">
-                          {milestone.completed ? (
-                            <CheckCircle2 className="h-6 w-6 text-success" />
-                          ) : (
-                            <Circle className="h-6 w-6 text-muted-foreground" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="mb-2 flex items-start justify-between gap-4">
-                            <div>
-                              <h3 className="font-semibold"><TranslatedText text={milestone.title} /></h3>
-                              <p className="text-sm text-muted-foreground">
-                                <TranslatedText text={milestone.description} />
-                              </p>
+                      Start Learning
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Skills Card */}
+              <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <CardHeader>
+                  <CardTitle className="text-lg">Skills Covered</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {activeRoadmap.tags.map((tag, index) => (
+                      <Badge
+                        key={index}
+                        variant="outline"
+                        className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Center: Timeline */}
+            <div className="lg:col-span-2">
+              <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <CardHeader>
+                  <CardTitle className="text-2xl">{activeRoadmap.title}</CardTitle>
+                  <CardDescription>{activeRoadmap.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* Milestones Timeline */}
+                  <div className="relative space-y-8 pl-8">
+                    {/* Vertical Line */}
+                    <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
+
+                    {activeRoadmap.milestones.map((milestone, index) => {
+                      const completedMilestones = getCompletedMilestones(activeRoadmap.id);
+                      const isCompleted = completedMilestones.has(milestone.id);
+                      const isNext = activeRoadmapStats.nextMilestone?.id === milestone.id;
+                      const isLocked = !isCompleted && !isNext && index > 0 && !completedMilestones.has(activeRoadmap.milestones[index - 1].id);
+
+                      return (
+                        <motion.div
+                          key={milestone.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="relative"
+                        >
+                          {/* Milestone Node */}
+                          <div className="absolute left-[-34px] top-2">
+                            {isCompleted ? (
+                              <div className="h-8 w-8 rounded-full bg-green-500 border-4 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                <CheckCircle2 className="h-5 w-5 text-white" />
+                              </div>
+                            ) : isNext ? (
+                              <motion.div
+                                animate={{ scale: [1, 1.1, 1] }}
+                                transition={{ duration: 2, repeat: Infinity }}
+                                className="h-8 w-8 rounded-full bg-[#C9B458] border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                              />
+                            ) : isLocked ? (
+                              <div className="h-8 w-8 rounded-full bg-muted border-4 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                                <Lock className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            ) : (
+                              <div className="h-8 w-8 rounded-full bg-white border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
+                            )}
+                          </div>
+
+                          {/* Milestone Card */}
+                          <button
+                            onClick={() => !isLocked && handleMilestoneClick(milestone)}
+                            disabled={isLocked}
+                            className={`w-full text-left p-6 rounded-lg border-4 border-black transition-all ${
+                              isLocked
+                                ? 'bg-muted opacity-60 cursor-not-allowed'
+                                : isNext
+                                ? 'bg-gradient-to-br from-[#C9B458]/10 to-[#C27BA0]/10 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                                : isCompleted
+                                ? 'bg-green-500/5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                                : 'bg-white hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                            }`}
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-sm font-bold text-muted-foreground">
+                                      Milestone {index + 1}
+                                    </span>
+                                    {isCompleted && (
+                                      <Badge className="bg-green-500 text-white border-2 border-black text-xs">
+                                        Completed
+                                      </Badge>
+                                    )}
+                                    {isNext && (
+                                      <Badge className="bg-[#C9B458] text-white border-2 border-black text-xs">
+                                        Current
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <h3 className="text-lg font-bold mb-2">{milestone.title}</h3>
+                                  <p className="text-sm text-muted-foreground">{milestone.description}</p>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                              </div>
+
+                              <div className="flex items-center gap-4 text-sm">
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <Clock className="h-4 w-4" />
+                                  <span>{milestone.estimatedHours}h</span>
+                                </div>
+                                <Badge className={`${getDifficultyColor(milestone.difficulty)} border-2`}>
+                                  {milestone.difficulty}
+                                </Badge>
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <BookOpen className="h-4 w-4" />
+                                  <span>{milestone.resources.length} resources</span>
+                                </div>
+                              </div>
+
+                              {/* Skills */}
+                              <div className="flex flex-wrap gap-2 pt-2">
+                                {milestone.skills.slice(0, 3).map((skill, skillIndex) => (
+                                  <span
+                                    key={skillIndex}
+                                    className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground border-2 border-black"
+                                  >
+                                    {skill}
+                                  </span>
+                                ))}
+                                {milestone.skills.length > 3 && (
+                                  <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground border-2 border-black">
+                                    +{milestone.skills.length - 3} more
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+        ) : (
+          /* No selection message */
+          <div className="text-center py-20">
+            <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-md mx-auto">
+              <CardContent className="p-12">
+                <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-bold mb-2">No Roadmap Selected</h3>
+                <p className="text-muted-foreground mb-6">
+                  Select a roadmap from the grid above to start your learning journey.
+                </p>
+                <Button
+                  onClick={handleBackToGrid}
+                  className="bg-[#C9B458] hover:bg-[#B8A347] text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  <LayoutGrid className="mr-2 h-4 w-4" />
+                  View All Roadmaps
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+
+      {/* Milestone Detail Drawer */}
+      <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <SheetContent className="w-full sm:max-w-2xl border-l-4 border-black overflow-y-auto">
+          {selectedMilestone && (
+            <>
+              <SheetHeader className="border-b-4 border-black pb-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <SheetTitle className="text-2xl mb-2">{selectedMilestone.title}</SheetTitle>
+                    <SheetDescription className="text-base">{selectedMilestone.description}</SheetDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="flex items-center gap-3 pt-4">
+                  <Badge className={`${getDifficultyColor(selectedMilestone.difficulty)} border-2`}>
+                    {selectedMilestone.difficulty.toUpperCase()}
+                  </Badge>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>{selectedMilestone.estimatedHours} hours</span>
+                  </div>
+                  {activeRoadmap && getCompletedMilestones(activeRoadmap.id).has(selectedMilestone.id) && (
+                    <Badge className="bg-green-500 text-white border-2 border-black">
+                      <CheckCircle2 className="mr-1 h-3 w-3" />
+                      Completed
+                    </Badge>
+                  )}
+                </div>
+              </SheetHeader>
+
+              <div className="space-y-6 py-6">
+                {/* Skills */}
+                <div>
+                  <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                    <Star className="h-5 w-5 text-[#C9B458]" />
+                    Skills You'll Learn
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedMilestone.skills.map((skill, index) => (
+                      <Badge
+                        key={index}
+                        variant="outline"
+                        className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      >
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator className="bg-black h-1" />
+
+                {/* Resources */}
+                <div>
+                  <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-[#C27BA0]" />
+                    Learning Resources
+                  </h3>
+                  <div className="space-y-3">
+                    {selectedMilestone.resources.map((resource) => (
+                      <Card key={resource.id} className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-[#6DAEDB]/10 border-2 border-black flex items-center justify-center flex-shrink-0">
+                              {getResourceIcon(resource.type)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <h4 className="font-semibold line-clamp-1">{resource.title}</h4>
+                                {resource.isFree && (
+                                  <Badge variant="outline" className="text-xs border-green-500 text-green-600">
+                                    FREE
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                <span className="capitalize">{resource.type}</span>
+                                {resource.duration && (
+                                  <>
+                                    <span>â€¢</span>
+                                    <span>{resource.duration}</span>
+                                  </>
+                                )}
+                              </div>
                             </div>
                             <Button
-                              variant={milestone.completed ? 'outline' : 'default'}
+                              variant="ghost"
                               size="sm"
+                              className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                              onClick={() => window.open(resource.url, '_blank')}
                             >
-                              {milestone.completed ? <TranslatedText text="Review" /> : <TranslatedText text="Start" />}
+                              <LinkIcon className="h-4 w-4" />
                             </Button>
                           </div>
-                          <div className="flex gap-2">
-                            <Badge className={difficultyColors[milestone.difficulty]}>
-                              <TranslatedText text={milestone.difficulty} />
-                            </Badge>
-                            <Badge variant="outline" className="gap-1">
-                              <Clock className="h-3 w-3" />
-                              {milestone.estimatedHours}h
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                {activeRoadmap && !getCompletedMilestones(activeRoadmap.id).has(selectedMilestone.id) && (
+                  <>
+                    <Separator className="bg-black h-1" />
+                    <Button
+                      className="w-full bg-green-500 hover:bg-green-600 text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      size="lg"
+                      onClick={() => activeRoadmap && handleCompleteMilestone(activeRoadmap.id, selectedMilestone.id)}
+                    >
+                      <CheckCircle2 className="mr-2 h-5 w-5" />
+                      Mark as Complete
+                    </Button>
+                  </>
+                )}
               </div>
             </>
           )}
-        </TabsContent>
-      </Tabs>
-      </div>
-    </div>
+        </SheetContent>
+      </Sheet>
+    </motion.div>
   );
 }

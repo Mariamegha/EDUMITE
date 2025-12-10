@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,18 +6,21 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { TranslationProvider } from "@/components/TranslationProvider";
-import { Navbar } from "@/components/Navbar";
 import NavbarGold from "@/components/NavbarGold";
 import DockNav from "@/components/DockNav";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AccessibilityFab } from "@/components/accessibility/AccessibilityFab";
+import { CaptionBar } from "@/components/accessibility/CaptionBar";
+import { useAccessibilityStore } from "@/store/accessibilityStore";
 import { useUserStore } from "@/store/userStore";
 import { initializeAuth } from "@/services/authService";
 import { supabase } from "@/lib/supabase";
+import { Suspense } from "react";
 
-import Landing from "./pages/Landing";
 import LandingGold from "./pages/LandingGold";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
+import Onboarding from "./pages/Onboarding";
 import DashboardGold from "./pages/DashboardGold";
 import AIBot from "./pages/AIBot";
 import Roadmap from "./pages/Roadmap";
@@ -31,6 +34,21 @@ import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import StudyPlanner from "./pages/StudyPlanner";
+import Workspace from "./pages/Workspace";
+import SmartDeadline from "./pages/SmartDeadline";
+import AdaptiveContent from "./pages/AdaptiveContent";
+import KnowledgeOrbit from "./pages/KnowledgeOrbit";
+import GameHub from "./pages/GameHub";
+import GameDetail from "./pages/GameDetail";
+import GameCompetitionLobby from "./pages/GameCompetitionLobby";
+import GameMatchResults from "./pages/GameMatchResults";
+import PerformanceTiers from "./pages/PerformanceTiers";
+import SmartOpportunities from "./pages/SmartOpportunities";
+import Wellness from "./pages/Wellness";
+import Schemes from "./pages/Schemes";
+import SignLanguage from "./pages/SignLanguage";
+import SignLanguageSetup from "./pages/SignLanguageSetup";
+import SignLanguageLesson from "./pages/SignLanguageLesson";
 
 const queryClient = new QueryClient();
 
@@ -41,10 +59,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AuthListener() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAuthenticatedRef = useRef(false);
 
   useEffect(() => {
-    // Initialize auth state on app load
-    initializeAuth();
+    // Initialize auth state on app load (only once)
+    initializeAuth().then(() => {
+      isAuthenticatedRef.current = useUserStore.getState().isAuthenticated;
+    });
 
     // Handle OAuth callback explicitly
     const handleOAuthCallback = async () => {
@@ -58,16 +80,24 @@ function AuthListener() {
         if (session) {
           // Trigger auth initialization
           await initializeAuth();
+          isAuthenticatedRef.current = true;
         }
       }
     };
 
     handleOAuthCallback();
 
-    // Listen for auth state changes (OAuth callback)
+    // Listen for auth state changes (OAuth callback, sign out)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 Auth state change:', event, session?.user?.email);
       
       if (event === 'SIGNED_IN' && session) {
+        // Prevent duplicate sign-in processing
+        if (isAuthenticatedRef.current) {
+          console.log('⚠️ Already authenticated, skipping duplicate SIGNED_IN event');
+          return;
+        }
+
         const userName = session.user.user_metadata?.name || 
                          session.user.user_metadata?.full_name || 
                          session.user.email?.split('@')[0] || 
@@ -88,8 +118,14 @@ function AuthListener() {
           user: userStoreData,
         });
         
-        // Navigate immediately
-        navigate('/dashboard', { replace: true });
+        isAuthenticatedRef.current = true;
+        
+        // Only navigate to dashboard if user is on login/register page or landing
+        const currentPath = window.location.pathname;
+        const isPublicPage = ['/', '/login', '/register'].includes(currentPath);
+        if (isPublicPage) {
+          navigate('/dashboard', { replace: true });
+        }
 
         // Fetch/create profile in background (don't block redirect)
         setTimeout(async () => {
@@ -123,25 +159,32 @@ function AuthListener() {
                 });
             }
           } catch (error) {
+            console.error('Profile sync error:', error);
             // Silent fail - user is already authenticated
           }
         }, 100);
       } else if (event === 'SIGNED_OUT') {
+        console.log('👋 User signed out');
         useUserStore.getState().logout();
+        isAuthenticatedRef.current = false;
+        navigate('/login', { replace: true });
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('🔄 Token refreshed successfully');
+        // Token refresh is automatic, no action needed
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate]); // Add navigate to deps
 
   return null;
 }
 
 function ConditionalLayout() {
   const location = useLocation();
-  const hideNavbar = ['/', '/login', '/register'].includes(location.pathname);
+  const hideNavbar = ['/', '/login', '/register', '/onboarding'].includes(location.pathname);
 
   return (
     <div className="flex min-h-screen flex-col bg-deepblack">
@@ -151,100 +194,275 @@ function ConditionalLayout() {
           <Route path="/" element={<LandingGold />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/onboarding" element={<Onboarding />} />
           <Route
                     path="/dashboard"
                     element={
-                      <ProtectedRoute>
-                        <DashboardGold />
-                      </ProtectedRoute>
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <DashboardGold />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
                     }
                   />
                   <Route
                     path="/ai-bot"
                     element={
-                      <ProtectedRoute>
-                        <AIBot />
-                      </ProtectedRoute>
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <AIBot />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
                     }
                   />
                   <Route
                     path="/roadmap"
                     element={
-                      <ProtectedRoute>
-                        <Roadmap />
-                      </ProtectedRoute>
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <Roadmap />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
                     }
                   />
                   <Route
                     path="/notes"
                     element={
-                      <ProtectedRoute>
-                        <Notes />
-                      </ProtectedRoute>
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <Notes />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
                     }
                   />
                   <Route
                     path="/focus-room"
                     element={
-                      <ProtectedRoute>
-                        <FocusRoom />
-                      </ProtectedRoute>
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <FocusRoom />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
                     }
                   />
                   <Route
                     path="/study-vr"
                     element={
-                      <ProtectedRoute>
-                        <StudyVR />
-                      </ProtectedRoute>
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <StudyVR />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
                     }
                   />
                   <Route
                     path="/courses"
                     element={
-                      <ProtectedRoute>
-                        <Courses />
-                      </ProtectedRoute>
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <Courses />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
                     }
                   />
                   <Route
                     path="/courses/:courseId"
                     element={
-                      <ProtectedRoute>
-                        <CourseDetail />
-                      </ProtectedRoute>
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <CourseDetail />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/sign-language"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <SignLanguage />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/sign-language/setup"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <SignLanguageSetup />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/sign-language/lesson"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <SignLanguageLesson />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
                     }
                   />
                   <Route
                     path="/community"
                     element={
-                      <ProtectedRoute>
-                        <Community />
-                      </ProtectedRoute>
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <Community />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
                     }
                   />
                   <Route
                     path="/analytics"
                     element={
-                      <ProtectedRoute>
-                        <Analytics />
-                      </ProtectedRoute>
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <Analytics />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
                     }
                   />
                   <Route
                     path="/study-planner"
                     element={
-                      <ProtectedRoute>
-                        <StudyPlanner />
-                      </ProtectedRoute>
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <StudyPlanner />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/workspace"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <Workspace />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
                     }
                   />
                   <Route
                     path="/settings"
                     element={
-                      <ProtectedRoute>
-                        <Settings />
-                      </ProtectedRoute>
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <Settings />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/smart-deadline"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <SmartDeadline />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/adaptive-content"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <AdaptiveContent />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/knowledge-orbit"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <KnowledgeOrbit />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/game-hub"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <GameHub />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/game-hub/:gameId"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <GameDetail />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/game-hub/:gameId/lobby"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <GameCompetitionLobby />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/game-hub/:gameId/results"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <GameMatchResults />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/performance-tiers"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <PerformanceTiers />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/smart-opportunities"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <SmartOpportunities />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/wellness"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <Wellness />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/schemes"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <Schemes />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
                     }
                   />
                   <Route path="*" element={<NotFound />} />
@@ -256,6 +474,41 @@ function ConditionalLayout() {
 }
 
 const App = () => {
+  const { dyslexiaFont, textScale, highContrast, colorblindMode } = useAccessibilityStore();
+
+  // Apply accessibility settings to document
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    
+    // Dyslexia font - apply to body for better cascade
+    if (dyslexiaFont) {
+      body.classList.add('dyslexia-font');
+      root.style.fontFamily = 'Comic Sans MS, Verdana, sans-serif';
+    } else {
+      body.classList.remove('dyslexia-font');
+      root.style.fontFamily = '';
+    }
+    
+    // Text scale
+    root.style.fontSize = `${textScale}%`;
+    
+    // High contrast
+    if (highContrast) {
+      root.classList.add('high-contrast');
+    } else {
+      root.classList.remove('high-contrast');
+    }
+    
+    // Colorblind filters
+    const filters = {
+      none: '',
+      protanopia: 'url(#protanopia)',
+      deuteranopia: 'url(#deuteranopia)',
+      tritanopia: 'url(#tritanopia)',
+    };
+    root.style.filter = filters[colorblindMode];
+  }, [dyslexiaFont, textScale, highContrast, colorblindMode]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -264,10 +517,21 @@ const App = () => {
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <BrowserRouter>
-              <AuthListener />
-              <ConditionalLayout />
-            </BrowserRouter>
+            <Suspense fallback={
+              <div className="flex min-h-screen items-center justify-center bg-[#0F1115]">
+                <div className="text-center">
+                  <div className="mb-4 text-6xl font-black text-gold animate-pulse">EDUMITE</div>
+                  <div className="text-text/60">Loading your learning universe...</div>
+                </div>
+              </div>
+            }>
+              <BrowserRouter>
+                <AuthListener />
+                <ConditionalLayout />
+                <AccessibilityFab />
+                <CaptionBar />
+              </BrowserRouter>
+            </Suspense>
           </TooltipProvider>
         </TranslationProvider>
       </ThemeProvider>

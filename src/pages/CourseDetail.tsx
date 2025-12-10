@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { useSoundPlayer } from '@/hooks/useSoundPlayer';
 import { TranslatedText } from '@/components/TranslatedText';
+import { GridScan } from '@/components/3D/GridScan';
+import { ThreeDFallback } from '@/components/3D/ThreeDFallback';
 import {
   BookOpen,
   Clock,
@@ -22,197 +27,116 @@ import {
   Target,
   Zap,
   Users,
+  BookMarked,
+  Download,
+  ChevronRight,
+  ChevronLeft,
+  Lock,
+  Video,
+  FileText,
+  Brain,
+  Sparkles,
+  TrendingUp,
+  LayoutGrid,
 } from 'lucide-react';
-import { getExternalCourses, type ExternalCourse } from '@/services/courseService';
-import { getCourseById, getCourseProgress, completeModule, updateCourseProgress, type Course, type Module } from '@/services/courseService';
-import { updateUserXP, getUserProfile } from '@/services/userService';
-import { getCurrentUserId } from '@/lib/auth';
-import { useUserStore } from '@/store/userStore';
-import IDE from '@/components/IDE';
-import DiscussionForum from '@/components/DiscussionForum';
+import { MOCK_COURSES } from '@/mocks/courses';
+import type { MockCourse, MockModule, MockLesson } from '@/mocks/courses';
+
+// Helper function to get difficulty badge color
+const getDifficultyColor = (difficulty: string) => {
+  switch (difficulty) {
+    case 'beginner':
+      return 'bg-green-500/10 text-green-500 border-green-500/20';
+    case 'intermediate':
+      return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+    case 'advanced':
+      return 'bg-red-500/10 text-red-500 border-red-500/20';
+    default:
+      return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+  }
+};
+
+// Helper function to get lesson type icon
+const getLessonIcon = (type: string) => {
+  switch (type) {
+    case 'video':
+      return <Video className="h-4 w-4" />;
+    case 'reading':
+      return <FileText className="h-4 w-4" />;
+    case 'quiz':
+      return <Brain className="h-4 w-4" />;
+    case 'coding':
+      return <Code className="h-4 w-4" />;
+    default:
+      return <BookOpen className="h-4 w-4" />;
+  }
+};
 
 export default function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const user = useUserStore((state) => state.user);
+  const { playSound } = useSoundPlayer();
   
-  const [course, setCourse] = useState<Course | ExternalCourse | null>(null);
-  const [modules, setModules] = useState<Module[]>([]);
-  const [activeModule, setActiveModule] = useState<number>(1);
-  const [progress, setProgress] = useState(0);
-  const [completedModules, setCompletedModules] = useState<number[]>([]);
-  const [xp, setXp] = useState(user?.xp || 0);
-  const [level, setLevel] = useState(user?.level || 1);
+  const [course, setCourse] = useState<MockCourse | null>(null);
+  const [currentLesson, setCurrentLesson] = useState<{ moduleId: string; lessonId: string } | null>(null);
+  const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set());
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'curriculum' | 'resources' | 'reviews'>('overview');
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'content' | 'ide' | 'discussion'>('content');
 
   useEffect(() => {
     loadCourse();
   }, [courseId]);
 
-  // Save active module when it changes (for resume functionality)
-  useEffect(() => {
-    if (courseId && activeModule > 0 && !isLoading) {
-      // Save to localStorage for quick access
-      localStorage.setItem(`last_module_${courseId}`, activeModule.toString());
-      
-      // For database courses, update last_accessed when module changes
-      if (!courseId.startsWith('ext-')) {
-        updateCourseProgress(courseId, {
-          completed_modules: completedModules.length,
-          progress_percentage: progress,
-        }).catch(err => {
-          // Silently fail - this is just for tracking, not critical
-          console.debug('Could not update last accessed:', err);
-        });
-      }
-    }
-  }, [activeModule, courseId, isLoading]);
-
-  const loadCourse = async () => {
+  // Load course data from mock
+  const loadCourse = () => {
     setIsLoading(true);
     try {
       if (!courseId) {
         throw new Error('Course ID is required');
       }
 
-      // Check if it's an external course
-      if (courseId.startsWith('ext-')) {
-        const result = await getExternalCourses();
-        const externalCourse = result.courses?.find(c => c.id === courseId);
-        if (externalCourse) {
-          setCourse(externalCourse);
-          // Generate mock modules for external courses
-          const mockModules = generateMockModules(externalCourse);
-          setModules(mockModules);
-          
-          // Load progress from localStorage for external courses
-          const savedProgress = localStorage.getItem(`course_progress_${courseId}`);
-          if (savedProgress) {
-            try {
-              const progressData = JSON.parse(savedProgress);
-              setProgress(progressData.progress || 0);
-              setCompletedModules(progressData.completedModules || []);
-              // Set active module to next incomplete module
-              if (progressData.completedModules && progressData.completedModules.length > 0) {
-                const lastCompleted = Math.max(...progressData.completedModules);
-                if (lastCompleted < mockModules.length) {
-                  setActiveModule(lastCompleted + 1);
-                } else {
-                  setActiveModule(mockModules.length);
-                }
-              }
-            } catch (e) {
-              console.error('Error loading saved progress:', e);
-            }
-          }
-          
-          // Check for last viewed module
-          const lastModule = localStorage.getItem(`last_module_${courseId}`);
-          if (lastModule) {
-            const moduleNum = parseInt(lastModule, 10);
-            if (moduleNum >= 1 && moduleNum <= mockModules.length) {
-              setActiveModule(moduleNum);
-            }
-          }
-        }
-        // Load user XP and level for external courses too
-        const userId = await getCurrentUserId();
-        if (userId) {
-          const profileResult = await getUserProfile(userId);
-          if (profileResult.profile) {
-            setXp(profileResult.profile.xp || 0);
-            setLevel(profileResult.profile.level || 1);
-          }
-        }
-        setIsLoading(false);
-        return;
+      // Find course in MOCK_COURSES
+      const foundCourse = MOCK_COURSES.find(c => c.id === courseId);
+      
+      if (!foundCourse) {
+        throw new Error('Course not found');
       }
 
-      // Load from database
-      const result = await getCourseById(courseId);
-      const courseModules = result.modules || [];
-      if (result.course) {
-        setCourse(result.course);
-        setModules(courseModules);
-      }
+      setCourse(foundCourse);
       
-      // Load user XP and level first
-      const userId = await getCurrentUserId();
-      if (userId) {
-        const profileResult = await getUserProfile(userId);
-        if (profileResult.profile) {
-          setXp(profileResult.profile.xp || 0);
-          setLevel(profileResult.profile.level || 1);
-        }
-      }
-      
-      // Load progress only for database courses
-      try {
-        const progressResult = await getCourseProgress(courseId);
-        if (progressResult.progress && !progressResult.error && courseModules.length > 0) {
-          const progressData = progressResult.progress;
-          setProgress(progressData.progress_percentage);
-          const completed = Array.from({ length: progressData.completed_modules }, (_, i) => i + 1);
-          setCompletedModules(completed);
+      // Load progress from localStorage
+      const savedProgress = localStorage.getItem(`course_progress_${courseId}`);
+      if (savedProgress) {
+        try {
+          const progressData = JSON.parse(savedProgress);
+          setCompletedLessons(new Set(progressData.completedLessons || []));
           
-          // Check for last viewed module first
-          const lastModule = localStorage.getItem(`last_module_${courseId}`);
-          if (lastModule) {
-            const moduleNum = parseInt(lastModule, 10);
-            if (moduleNum >= 1 && moduleNum <= courseModules.length) {
-              setActiveModule(moduleNum);
-            } else {
-              // Invalid module number, use default logic
-              if (completed.length > 0 && completed.length < courseModules.length) {
-                setActiveModule(completed.length + 1);
-              } else if (completed.length === courseModules.length) {
-                setActiveModule(courseModules.length);
-              } else {
-                setActiveModule(1);
-              }
-            }
-          } else {
-            // No last module saved, set active module to next incomplete module or last completed + 1
-            if (completed.length > 0 && completed.length < courseModules.length) {
-              setActiveModule(completed.length + 1);
-            } else if (completed.length === courseModules.length) {
-              setActiveModule(courseModules.length);
-            } else {
-              setActiveModule(1);
-            }
+          // Set current lesson to last incomplete or first lesson
+          if (progressData.currentLesson) {
+            setCurrentLesson(progressData.currentLesson);
+          } else if (foundCourse.modules.length > 0 && foundCourse.modules[0].lessons.length > 0) {
+            setCurrentLesson({
+              moduleId: foundCourse.modules[0].id,
+              lessonId: foundCourse.modules[0].lessons[0].id,
+            });
           }
-        } else {
-          // No progress yet, check for last viewed module
-          const lastModule = localStorage.getItem(`last_module_${courseId}`);
-          if (lastModule) {
-            const moduleNum = parseInt(lastModule, 10);
-            if (moduleNum >= 1 && moduleNum <= courseModules.length) {
-              setActiveModule(moduleNum);
-            } else {
-              setActiveModule(1);
-            }
-          } else {
-            setActiveModule(1);
-          }
+        } catch (e) {
+          console.error('Error loading saved progress:', e);
         }
-      } catch (progressError) {
-        // Progress loading failed, but continue with course loading
-        console.warn('Failed to load progress:', progressError);
-        // Check for last viewed module as fallback
-        const lastModule = localStorage.getItem(`last_module_${courseId}`);
-        if (lastModule) {
-          const moduleNum = parseInt(lastModule, 10);
-          if (moduleNum >= 1 && moduleNum <= courseModules.length) {
-            setActiveModule(moduleNum);
-          } else {
-            setActiveModule(1);
-          }
-        } else {
-          setActiveModule(1);
-        }
+      } else if (foundCourse.modules.length > 0 && foundCourse.modules[0].lessons.length > 0) {
+        // No saved progress, start with first lesson
+        setCurrentLesson({
+          moduleId: foundCourse.modules[0].id,
+          lessonId: foundCourse.modules[0].lessons[0].id,
+        });
       }
+
+      // Load bookmark status
+      const bookmarks = JSON.parse(localStorage.getItem('bookmarked_courses') || '[]');
+      setIsBookmarked(bookmarks.includes(courseId));
+
     } catch (error: any) {
       console.error('Error loading course:', error);
       toast({
@@ -225,1426 +149,850 @@ export default function CourseDetail() {
     }
   };
 
-  const generateMockModules = (course: ExternalCourse): Module[] => {
-    const moduleCount = 8;
-    
-    // Special handling for Python Programming for Beginners
-    if (course.id === 'ext-1' || course.title.toLowerCase().includes('python')) {
-      return generatePythonModules(course);
-    }
-    
-    // Default generic modules for other courses
-    return Array.from({ length: moduleCount }, (_, i) => ({
-      id: `module-${i + 1}`,
-      course_id: course.id,
-      module_number: i + 1,
-      title: `Module ${i + 1}: ${getModuleTitle(course, i + 1)}`,
-      summary: `Learn the fundamentals of ${getModuleTitle(course, i + 1).toLowerCase()}`,
-      content: {
-        concepts: [`Concept 1 for Module ${i + 1}`, `Concept 2 for Module ${i + 1}`],
-        examples: [`Example 1 for Module ${i + 1}`, `Example 2 for Module ${i + 1}`],
-        content_blocks: [
-          {
-            type: 'text',
-            content: `This is the content for Module ${i + 1}. Learn about ${getModuleTitle(course, i + 1).toLowerCase()} in detail.`,
-          },
-        ],
-      },
-      time_required: 30 + i * 10,
-      flashcards: [],
-      practice_tasks: [],
-      quiz: { questions: [] },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }));
+  // Calculate progress
+  const totalLessons = course?.modules.reduce((acc, mod) => acc + mod.lessons.length, 0) || 0;
+  const progressPercentage = totalLessons > 0 ? (completedLessons.size / totalLessons) * 100 : 0;
+
+  // Get current lesson object
+  const getCurrentLesson = (): MockLesson | null => {
+    if (!course || !currentLesson) return null;
+    const module = course.modules.find(m => m.id === currentLesson.moduleId);
+    if (!module) return null;
+    return module.lessons.find(l => l.id === currentLesson.lessonId) || null;
   };
 
-  const generatePythonModules = (course: ExternalCourse): Module[] => {
-    const pythonModules = [
-      {
-        module_number: 1,
-        title: 'Module 1: Introduction to Python',
-        summary: 'Get started with Python programming. Learn what Python is, why it\'s popular, and how to set up your development environment.',
-        concepts: [
-          'What is Python and its history',
-          'Python\'s advantages and use cases',
-          'Installing Python and choosing an IDE',
-          'Writing and running your first Python program',
-          'Understanding the Python interpreter'
-        ],
-        content: `Python is a high-level, interpreted programming language known for its simplicity and readability. Created by Guido van Rossum and first released in 1991, Python has become one of the most popular programming languages in the world.
-
-**Why Learn Python?**
-- Easy to learn: Python's syntax is clear and intuitive
-- Versatile: Used in web development, data science, AI, automation, and more
-- Large community: Extensive libraries and frameworks
-- High demand: One of the most sought-after skills in tech
-
-**Setting Up Python:**
-1. Download Python from python.org (latest version recommended)
-2. Install Python and check the "Add Python to PATH" option
-3. Verify installation by running: python --version
-4. Choose an IDE: VS Code, PyCharm, or IDLE (comes with Python)
-
-**Your First Python Program:**
-The traditional first program in any language is "Hello, World!":
-
-\`\`\`python
-print("Hello, World!")
-\`\`\`
-
-This simple line demonstrates Python's readability. The print() function outputs text to the console. Notice there's no need for semicolons or complex syntax - Python emphasizes code readability.`,
-        examples: [
-          {
-            title: 'Hello World Program',
-            code: `print("Hello, World!")
-print("Welcome to Python Programming!")`,
-            explanation: 'The print() function displays text. You can call it multiple times to print different messages.'
-          },
-          {
-            title: 'Comments in Python',
-            code: `# This is a single-line comment
-print("Comments are ignored by Python")
-
-"""
-This is a multi-line comment
-You can write multiple lines here
-"""`,
-            explanation: 'Comments help document your code. Use # for single-line comments and triple quotes for multi-line comments.'
-          }
-        ],
-        time_required: 45
-      },
-      {
-        module_number: 2,
-        title: 'Module 2: Variables and Data Types',
-        summary: 'Learn about variables, different data types in Python, and how to work with them effectively.',
-        concepts: [
-          'Variables and naming conventions',
-          'Basic data types: int, float, str, bool',
-          'Type conversion and type checking',
-          'String operations and formatting',
-          'Constants and best practices'
-        ],
-        content: `Variables are containers for storing data values. In Python, you don't need to declare the type of a variable - Python automatically determines it based on the value you assign.
-
-**Basic Data Types:**
-
-1. **Integers (int)**: Whole numbers
-   \`\`\`python
-   age = 25
-   count = -10
-   \`\`\`
-
-2. **Floats (float)**: Decimal numbers
-   \`\`\`python
-   price = 19.99
-   temperature = -5.5
-   \`\`\`
-
-3. **Strings (str)**: Text data
-   \`\`\`python
-   name = "Alice"
-   message = 'Hello, Python!'
-   \`\`\`
-
-4. **Booleans (bool)**: True or False
-   \`\`\`python
-   is_active = True
-   is_complete = False
-   \`\`\`
-
-**Variable Naming Rules:**
-- Must start with a letter or underscore
-- Can contain letters, numbers, and underscores
-- Case-sensitive (age ≠ Age)
-- Cannot use Python keywords (if, for, while, etc.)
-- Use descriptive names: user_name instead of un
-
-**Type Conversion:**
-You can convert between types using built-in functions:
-\`\`\`python
-num_str = "42"
-num_int = int(num_str)  # Convert to integer
-num_float = float(num_str)  # Convert to float
-\`\`\``,
-        examples: [
-          {
-            title: 'Working with Variables',
-            code: `# Different data types
-name = "Python"
-version = 3.11
-is_awesome = True
-
-# Type checking
-print(type(name))  # <class 'str'>
-print(type(version))  # <class 'int'>
-print(type(is_awesome))  # <class 'bool'>
-
-# Type conversion
-age_str = "25"
-age_int = int(age_str)
-print(age_int + 5)  # 30`,
-            explanation: 'Python automatically assigns types to variables. Use type() to check the type and conversion functions to change types.'
-          },
-          {
-            title: 'String Operations',
-            code: `first_name = "John"
-last_name = "Doe"
-
-# Concatenation
-full_name = first_name + " " + last_name
-print(full_name)  # John Doe
-
-# String formatting (f-strings)
-age = 30
-message = f"My name is {full_name} and I'm {age} years old"
-print(message)  # My name is John Doe and I'm 30 years old
-
-# String methods
-text = "  Hello Python  "
-print(text.strip())  # "Hello Python"
-print(text.upper())  # "  HELLO PYTHON  "`,
-            explanation: 'Strings support many operations. F-strings (formatted string literals) are the modern way to format strings in Python.'
-          }
-        ],
-        time_required: 60
-      },
-      {
-        module_number: 3,
-        title: 'Module 3: Control Flow',
-        summary: 'Master conditional statements and loops to control the flow of your Python programs.',
-        concepts: [
-          'If, elif, and else statements',
-          'Comparison and logical operators',
-          'For loops and while loops',
-          'Loop control: break, continue, pass',
-          'Nested loops and conditions'
-        ],
-        content: `Control flow allows your program to make decisions and repeat actions. Python provides several control structures to handle different scenarios.
-
-**Conditional Statements:**
-
-The if statement allows your program to execute code conditionally:
-
-\`\`\`python
-age = 18
-if age >= 18:
-    print("You are an adult")
-elif age >= 13:
-    print("You are a teenager")
-else:
-    print("You are a child")
-\`\`\`
-
-**Comparison Operators:**
-- == (equal to)
-- != (not equal to)
-- < (less than)
-- > (greater than)
-- <= (less than or equal to)
-- >= (greater than or equal to)
-
-**Logical Operators:**
-- and: Both conditions must be True
-- or: At least one condition must be True
-- not: Reverses the boolean value
-
-**Loops:**
-
-1. **For Loop**: Iterates over a sequence
-   \`\`\`python
-   for i in range(5):
-       print(i)  # Prints 0, 1, 2, 3, 4
-   \`\`\`
-
-2. **While Loop**: Repeats while condition is True
-   \`\`\`python
-   count = 0
-   while count < 5:
-       print(count)
-       count += 1
-   \`\`\`
-
-**Loop Control:**
-- break: Exit the loop immediately
-- continue: Skip to the next iteration
-- pass: Do nothing (placeholder)`,
-        examples: [
-          {
-            title: 'Conditional Statements',
-            code: `score = 85
-
-if score >= 90:
-    grade = "A"
-elif score >= 80:
-    grade = "B"
-elif score >= 70:
-    grade = "C"
-else:
-    grade = "F"
-
-print(f"Your grade is {grade}")
-
-# Logical operators
-age = 25
-has_license = True
-
-if age >= 18 and has_license:
-    print("You can drive")
-else:
-    print("You cannot drive")`,
-            explanation: 'Use if/elif/else for decision-making. Combine conditions with logical operators (and, or, not) for complex logic.'
-          },
-          {
-            title: 'Loops in Action',
-            code: `# For loop with range
-print("Counting to 5:")
-for i in range(1, 6):
-    print(i)
-
-# For loop with list
-fruits = ["apple", "banana", "cherry"]
-for fruit in fruits:
-    print(f"I like {fruit}")
-
-# While loop
-countdown = 5
-while countdown > 0:
-    print(countdown)
-    countdown -= 1
-print("Blast off!")
-
-# Loop with break
-for num in range(10):
-    if num == 5:
-        break
-    print(num)  # Prints 0-4`,
-            explanation: 'For loops are great when you know how many iterations you need. While loops are useful when the condition determines when to stop.'
-          }
-        ],
-        time_required: 75
-      },
-      {
-        module_number: 4,
-        title: 'Module 4: Functions',
-        summary: 'Learn to create reusable code blocks with functions. Understand parameters, return values, and scope.',
-        concepts: [
-          'Defining and calling functions',
-          'Parameters and arguments',
-          'Return values',
-          'Default parameters and keyword arguments',
-          'Variable scope: local vs global',
-          'Lambda functions'
-        ],
-        content: `Functions are reusable blocks of code that perform a specific task. They help organize code, reduce repetition, and make programs easier to understand and maintain.
-
-**Defining Functions:**
-
-\`\`\`python
-def greet(name):
-    return f"Hello, {name}!"
-
-message = greet("Alice")
-print(message)  # Hello, Alice!
-\`\`\`
-
-**Function Components:**
-- def: Keyword to define a function
-- Function name: Follows variable naming rules
-- Parameters: Variables that receive values
-- Return statement: Sends a value back (optional)
-
-**Parameters and Arguments:**
-
-Functions can accept multiple parameters:
-
-\`\`\`python
-def add_numbers(a, b):
-    return a + b
-
-result = add_numbers(5, 3)  # 8
-\`\`\`
-
-**Default Parameters:**
-
-You can provide default values for parameters:
-
-\`\`\`python
-def greet(name, greeting="Hello"):
-    return f"{greeting}, {name}!"
-
-print(greet("Alice"))  # Hello, Alice!
-print(greet("Bob", "Hi"))  # Hi, Bob!
-\`\`\`
-
-**Variable Scope:**
-
-Variables defined inside a function are local to that function. Variables defined outside are global.
-
-\`\`\`python
-global_var = "I'm global"
-
-def my_function():
-    local_var = "I'm local"
-    print(global_var)  # Can access global
-    print(local_var)   # Can access local
-
-my_function()
-# print(local_var)  # Error! local_var doesn't exist here
-\`\`\``,
-        examples: [
-          {
-            title: 'Basic Functions',
-            code: `# Simple function
-def square(number):
-    return number ** 2
-
-result = square(5)
-print(result)  # 25
-
-# Function with multiple parameters
-def calculate_area(length, width):
-    area = length * width
-    return area
-
-room_area = calculate_area(10, 8)
-print(f"Room area: {room_area} square feet")  # 80`,
-            explanation: 'Functions encapsulate logic. Use return to send values back. Functions without return statements return None.'
-          },
-          {
-            title: 'Advanced Function Features',
-            code: `# Default parameters
-def introduce(name, age, city="Unknown"):
-    return f"{name} is {age} years old and lives in {city}"
-
-print(introduce("Alice", 25))  # Uses default city
-print(introduce("Bob", 30, "New York"))  # Overrides default
-
-# Keyword arguments
-def create_profile(name, age, email):
-    return {
-        "name": name,
-        "age": age,
-        "email": email
-    }
-
-profile = create_profile(age=25, email="alice@example.com", name="Alice")
-print(profile)
-
-# Lambda functions (anonymous functions)
-multiply = lambda x, y: x * y
-print(multiply(3, 4))  # 12`,
-            explanation: 'Default parameters make functions flexible. Keyword arguments allow you to pass arguments in any order. Lambda functions are concise one-line functions.'
-          }
-        ],
-        time_required: 90
-      },
-      {
-        module_number: 5,
-        title: 'Module 5: Data Structures',
-        summary: 'Explore Python\'s built-in data structures: lists, tuples, dictionaries, and sets.',
-        concepts: [
-          'Lists: creation, indexing, and methods',
-          'Tuples: immutable sequences',
-          'Dictionaries: key-value pairs',
-          'Sets: unique collections',
-          'List comprehensions',
-          'Nested data structures'
-        ],
-        content: `Python provides several built-in data structures to store and organize data efficiently. Each has its own characteristics and use cases.
-
-**Lists:**
-
-Lists are ordered, mutable collections. They can contain items of different types.
-
-\`\`\`python
-fruits = ["apple", "banana", "cherry"]
-numbers = [1, 2, 3, 4, 5]
-mixed = [1, "hello", 3.14, True]
-
-# Accessing elements
-print(fruits[0])  # apple
-print(fruits[-1])  # cherry (last item)
-
-# List methods
-fruits.append("orange")  # Add item
-fruits.remove("banana")  # Remove item
-fruits.sort()  # Sort list
-\`\`\`
-
-**Tuples:**
-
-Tuples are ordered, immutable collections. Use parentheses.
-
-\`\`\`python
-coordinates = (10, 20)
-point = (x, y, z)  # Cannot modify after creation
-\`\`\`
-
-**Dictionaries:**
-
-Dictionaries store key-value pairs. Keys must be unique and immutable.
-
-\`\`\`python
-student = {
-    "name": "Alice",
-    "age": 20,
-    "grade": "A"
-}
-
-# Accessing values
-print(student["name"])  # Alice
-print(student.get("age"))  # 20
-
-# Adding/updating
-student["email"] = "alice@example.com"
-\`\`\`
-
-**Sets:**
-
-Sets are unordered collections of unique elements.
-
-\`\`\`python
-unique_numbers = {1, 2, 3, 4, 5}
-unique_numbers.add(6)
-unique_numbers.remove(3)
-\`\`\``,
-        examples: [
-          {
-            title: 'Working with Lists',
-            code: `# List operations
-shopping_list = ["milk", "bread", "eggs"]
-
-# Add items
-shopping_list.append("butter")
-shopping_list.insert(1, "cheese")
-
-# Remove items
-shopping_list.remove("bread")
-last_item = shopping_list.pop()  # Removes and returns last item
-
-# List slicing
-numbers = [0, 1, 2, 3, 4, 5]
-print(numbers[1:4])  # [1, 2, 3]
-print(numbers[:3])   # [0, 1, 2]
-print(numbers[3:])   # [3, 4, 5]
-
-# List comprehension
-squares = [x**2 for x in range(5)]
-print(squares)  # [0, 1, 4, 9, 16]`,
-            explanation: 'Lists are versatile. Use methods like append(), remove(), and pop() to modify them. List comprehensions provide a concise way to create lists.'
-          },
-          {
-            title: 'Dictionaries and Sets',
-            code: `# Dictionary operations
-person = {
-    "name": "John",
-    "age": 30,
-    "city": "New York"
-}
-
-# Accessing
-print(person["name"])  # John
-print(person.get("email", "Not provided"))  # Safe access with default
-
-# Iterating
-for key, value in person.items():
-    print(f"{key}: {value}")
-
-# Set operations
-set1 = {1, 2, 3, 4}
-set2 = {3, 4, 5, 6}
-
-print(set1.union(set2))      # {1, 2, 3, 4, 5, 6}
-print(set1.intersection(set2))  # {3, 4}
-print(set1.difference(set2))    # {1, 2}`,
-            explanation: 'Dictionaries are perfect for structured data. Sets are great for mathematical operations and removing duplicates.'
-          }
-        ],
-        time_required: 90
-      },
-      {
-        module_number: 6,
-        title: 'Module 6: Object-Oriented Programming',
-        summary: 'Introduction to classes, objects, inheritance, and encapsulation in Python.',
-        concepts: [
-          'Classes and objects',
-          'Attributes and methods',
-          'The __init__ method (constructor)',
-          'Inheritance and method overriding',
-          'Encapsulation and access modifiers',
-          'Special methods (__str__, __repr__)'
-        ],
-        content: `Object-Oriented Programming (OOP) is a programming paradigm that organizes code into objects, which contain both data (attributes) and functions (methods) that operate on that data.
-
-**Classes and Objects:**
-
-A class is a blueprint for creating objects. An object is an instance of a class.
-
-\`\`\`python
-class Dog:
-    def __init__(self, name, breed):
-        self.name = name
-        self.breed = breed
-    
-    def bark(self):
-        return f"{self.name} says Woof!"
-
-# Creating objects
-my_dog = Dog("Buddy", "Golden Retriever")
-print(my_dog.bark())  # Buddy says Woof!
-\`\`\`
-
-**Key Concepts:**
-
-1. **__init__ method**: Constructor that initializes the object
-2. **self**: Reference to the instance of the class
-3. **Attributes**: Variables that belong to the object
-4. **Methods**: Functions that belong to the object
-
-**Inheritance:**
-
-Classes can inherit from other classes, allowing code reuse:
-
-\`\`\`python
-class Animal:
-    def __init__(self, name):
-        self.name = name
-    
-    def speak(self):
-        return "Some sound"
-
-class Cat(Animal):
-    def speak(self):
-        return f"{self.name} says Meow!"
-
-my_cat = Cat("Whiskers")
-print(my_cat.speak())  # Whiskers says Meow!
-\`\`\``,
-        examples: [
-          {
-            title: 'Creating Classes',
-            code: `class Rectangle:
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
-    
-    def area(self):
-        return self.width * self.height
-    
-    def perimeter(self):
-        return 2 * (self.width + self.height)
-    
-    def __str__(self):
-        return f"Rectangle({self.width}x{self.height})"
-
-# Create rectangle objects
-rect1 = Rectangle(5, 3)
-print(rect1)  # Rectangle(5x3)
-print(f"Area: {rect1.area()}")  # 15
-print(f"Perimeter: {rect1.perimeter()}")  # 16`,
-            explanation: 'Classes define objects with attributes (data) and methods (functions). The __init__ method initializes new objects. __str__ defines how objects are displayed.'
-          },
-          {
-            title: 'Inheritance Example',
-            code: `class Vehicle:
-    def __init__(self, brand, model):
-        self.brand = brand
-        self.model = model
-    
-    def start(self):
-        return f"{self.brand} {self.model} is starting..."
-
-class Car(Vehicle):
-    def __init__(self, brand, model, doors):
-        super().__init__(brand, model)
-        self.doors = doors
-    
-    def honk(self):
-        return "Beep beep!"
-
-class Motorcycle(Vehicle):
-    def wheelie(self):
-        return "Doing a wheelie!"
-
-# Using inheritance
-my_car = Car("Toyota", "Camry", 4)
-print(my_car.start())  # Toyota Camry is starting...
-print(my_car.honk())   # Beep beep!
-
-my_bike = Motorcycle("Honda", "CBR")
-print(my_bike.start())  # Honda CBR is starting...`,
-            explanation: 'Inheritance allows classes to inherit attributes and methods from parent classes. Use super() to call parent class methods. Child classes can add new methods or override existing ones.'
-          }
-        ],
-        time_required: 100
-      },
-      {
-        module_number: 7,
-        title: 'Module 7: File Handling and Error Handling',
-        summary: 'Learn to read from and write to files, and handle errors gracefully in your Python programs.',
-        concepts: [
-          'Reading and writing files',
-          'File modes (r, w, a, x)',
-          'Context managers (with statement)',
-          'Exception handling (try, except, finally)',
-          'Common exceptions and custom exceptions',
-          'Best practices for file operations'
-        ],
-        content: `Working with files and handling errors are essential skills for any Python programmer. Python provides powerful tools for both.
-
-**File Operations:**
-
-Python uses the open() function to work with files:
-
-\`\`\`python
-# Reading a file
-with open("data.txt", "r") as file:
-    content = file.read()
-    print(content)
-\`\`\`
-
-**File Modes:**
-- 'r': Read mode (default)
-- 'w': Write mode (overwrites existing file)
-- 'a': Append mode (adds to end of file)
-- 'x': Exclusive creation (fails if file exists)
-- 'b': Binary mode (for images, etc.)
-
-**The with Statement:**
-
-The with statement automatically closes files, even if an error occurs:
-
-\`\`\`python
-with open("file.txt", "w") as file:
-    file.write("Hello, Python!")
-# File is automatically closed here
-\`\`\`
-
-**Error Handling:**
-
-Use try-except blocks to handle errors gracefully:
-
-\`\`\`python
-try:
-    result = 10 / 0
-except ZeroDivisionError:
-    print("Cannot divide by zero!")
-except Exception as e:
-    print(f"An error occurred: {e}")
-finally:
-    print("This always executes")
-\`\`\`
-
-**Common Exceptions:**
-- FileNotFoundError: File doesn't exist
-- ValueError: Invalid value
-- TypeError: Wrong type
-- KeyError: Dictionary key not found
-- IndexError: List index out of range`,
-        examples: [
-          {
-            title: 'File Operations',
-            code: `# Writing to a file
-with open("notes.txt", "w") as file:
-    file.write("Line 1\\n")
-    file.write("Line 2\\n")
-    file.writelines(["Line 3\\n", "Line 4\\n"])
-
-# Reading from a file
-with open("notes.txt", "r") as file:
-    # Read entire file
-    content = file.read()
-    print(content)
-    
-    # Read line by line
-    file.seek(0)  # Reset to beginning
-    for line in file:
-        print(line.strip())
-
-# Appending to a file
-with open("notes.txt", "a") as file:
-    file.write("Line 5\\n")`,
-            explanation: 'Use with statement for file operations - it automatically handles file closing. Different modes (r, w, a) serve different purposes.'
-          },
-          {
-            title: 'Error Handling',
-            code: `# Basic error handling
-try:
-    age = int(input("Enter your age: "))
-    result = 100 / age
-    print(f"Result: {result}")
-except ValueError:
-    print("Please enter a valid number")
-except ZeroDivisionError:
-    print("Age cannot be zero")
-except Exception as e:
-    print(f"Unexpected error: {e}")
-else:
-    print("Calculation successful!")
-finally:
-    print("Program finished")
-
-# Handling file errors
-try:
-    with open("nonexistent.txt", "r") as file:
-        content = file.read()
-except FileNotFoundError:
-    print("File not found!")
-except PermissionError:
-    print("Permission denied!")
-except Exception as e:
-    print(f"Error: {e}")`,
-            explanation: 'Try-except blocks catch and handle errors. Use specific exception types for better error handling. The finally block always executes, useful for cleanup.'
-          }
-        ],
-        time_required: 80
-      },
-      {
-        module_number: 8,
-        title: 'Module 8: Project Work - Building a Python Application',
-        summary: 'Apply everything you\'ve learned by building a complete Python application from scratch.',
-        concepts: [
-          'Planning and designing your application',
-          'Breaking down problems into smaller tasks',
-          'Implementing core functionality',
-          'Testing and debugging',
-          'Code organization and best practices',
-          'Documentation and comments'
-        ],
-        content: `Now it's time to put everything together! In this module, you'll build a complete Python application that demonstrates all the concepts you've learned.
-
-**Project: Task Manager Application**
-
-We'll build a command-line task manager that allows users to:
-- Add tasks
-- View all tasks
-- Mark tasks as complete
-- Delete tasks
-- Save tasks to a file
-- Load tasks from a file
-
-**Planning Your Application:**
-
-1. **Define the data structure**: Use a list of dictionaries
-2. **Create functions for each operation**: add_task(), view_tasks(), complete_task(), etc.
-3. **Implement file persistence**: Save/load tasks from a JSON file
-4. **Create a user interface**: Menu-driven command-line interface
-5. **Add error handling**: Handle invalid inputs and file errors
-
-**Implementation Steps:**
-
-1. Start with basic data structure and functions
-2. Add file I/O functionality
-3. Create the main menu loop
-4. Add error handling
-5. Test thoroughly
-6. Refactor and improve
-
-**Best Practices:**
-- Write clear, descriptive function names
-- Add comments explaining complex logic
-- Handle errors gracefully
-- Keep functions focused on one task
-- Test your code frequently`,
-        examples: [
-          {
-            title: 'Task Manager - Core Structure',
-            code: `import json
-import os
-
-class TaskManager:
-    def __init__(self, filename="tasks.json"):
-        self.filename = filename
-        self.tasks = self.load_tasks()
-    
-    def load_tasks(self):
-        """Load tasks from file"""
-        if os.path.exists(self.filename):
-            try:
-                with open(self.filename, "r") as file:
-                    return json.load(file)
-            except Exception as e:
-                print(f"Error loading tasks: {e}")
-                return []
-        return []
-    
-    def save_tasks(self):
-        """Save tasks to file"""
-        try:
-            with open(self.filename, "w") as file:
-                json.dump(self.tasks, file, indent=2)
-            return True
-        except Exception as e:
-            print(f"Error saving tasks: {e}")
-            return False
-    
-    def add_task(self, description):
-        """Add a new task"""
-        task = {
-            "id": len(self.tasks) + 1,
-            "description": description,
-            "completed": False
-        }
-        self.tasks.append(task)
-        self.save_tasks()
-        print(f"Task '{description}' added!")
-    
-    def view_tasks(self):
-        """Display all tasks"""
-        if not self.tasks:
-            print("No tasks found!")
-            return
-        
-        for task in self.tasks:
-            status = "✓" if task["completed"] else " "
-            print(f"{status} [{task['id']}] {task['description']}")
-    
-    def complete_task(self, task_id):
-        """Mark a task as complete"""
-        for task in self.tasks:
-            if task["id"] == task_id:
-                task["completed"] = True
-                self.save_tasks()
-                print(f"Task {task_id} marked as complete!")
-                return
-        print(f"Task {task_id} not found!")
-
-# Usage
-manager = TaskManager()
-manager.add_task("Learn Python")
-manager.add_task("Build a project")
-manager.view_tasks()`,
-            explanation: 'This TaskManager class demonstrates OOP, file handling, error handling, and data structures. It\'s a complete, working application that you can extend further.'
-          },
-          {
-            title: 'Adding a Menu Interface',
-            code: `def main():
-    manager = TaskManager()
-    
-    while True:
-        print("\\n=== Task Manager ===")
-        print("1. Add task")
-        print("2. View tasks")
-        print("3. Complete task")
-        print("4. Delete task")
-        print("5. Exit")
-        
-        choice = input("\\nEnter your choice: ")
-        
-        if choice == "1":
-            description = input("Enter task description: ")
-            manager.add_task(description)
-        elif choice == "2":
-            manager.view_tasks()
-        elif choice == "3":
-            try:
-                task_id = int(input("Enter task ID: "))
-                manager.complete_task(task_id)
-            except ValueError:
-                print("Invalid task ID!")
-        elif choice == "4":
-            try:
-                task_id = int(input("Enter task ID to delete: "))
-                manager.delete_task(task_id)
-            except ValueError:
-                print("Invalid task ID!")
-        elif choice == "5":
-            print("Goodbye!")
-            break
-        else:
-            print("Invalid choice!")
-
-if __name__ == "__main__":
-    main()`,
-            explanation: 'The main() function creates a menu-driven interface. This demonstrates control flow, user input, and error handling in a practical application.'
-          }
-        ],
-        time_required: 120
-      }
-    ];
-
-    return pythonModules.map(module => ({
-      id: `module-${module.module_number}`,
-      course_id: course.id,
-      module_number: module.module_number,
-      title: module.title,
-      summary: module.summary,
-      content: {
-        concepts: module.concepts,
-        examples: module.examples.map(ex => ex.code),
-        content_blocks: [
-          {
-            type: 'text',
-            content: module.content,
-          },
-          ...module.examples.map(ex => ({
-            type: 'code',
-            content: ex.code,
-            title: ex.title,
-            explanation: ex.explanation,
-          })),
-        ],
-      },
-      time_required: module.time_required,
-      flashcards: [],
-      practice_tasks: [],
-      quiz: { questions: [] },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }));
+  // Get current module object
+  const getCurrentModule = (): MockModule | null => {
+    if (!course || !currentLesson) return null;
+    return course.modules.find(m => m.id === currentLesson.moduleId) || null;
   };
 
-  const getModuleTitle = (course: ExternalCourse, moduleNum: number): string => {
-    if (course.category === 'coding' || course.is_tech) {
-      const titles = [
-        'Introduction',
-        'Basic Concepts',
-        'Variables and Data Types',
-        'Control Structures',
-        'Functions and Methods',
-        'Object-Oriented Programming',
-        'Advanced Topics',
-        'Projects and Practice',
-      ];
-      return titles[moduleNum - 1] || `Topic ${moduleNum}`;
-    } else if (course.category === 'language') {
-      const titles = [
-        'Introduction',
-        'Alphabet and Pronunciation',
-        'Basic Vocabulary',
-        'Grammar Basics',
-        'Common Phrases',
-        'Conversation Practice',
-        'Advanced Grammar',
-        'Cultural Context',
-      ];
-      return titles[moduleNum - 1] || `Topic ${moduleNum}`;
-    }
-    return `Topic ${moduleNum}`;
-  };
+  // Handle lesson completion
+  const handleCompleteLesson = () => {
+    if (!currentLesson) return;
+    
+    const lessonKey = `${currentLesson.moduleId}-${currentLesson.lessonId}`;
+    const newCompleted = new Set(completedLessons);
+    newCompleted.add(lessonKey);
+    setCompletedLessons(newCompleted);
 
-  const handleModuleComplete = async (moduleNum: number) => {
-    if (completedModules.includes(moduleNum)) return;
-    
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      toast({
-        title: 'Error',
-        description: 'You must be logged in to complete modules',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    const newCompleted = [...completedModules, moduleNum];
-    setCompletedModules(newCompleted);
-    
-    const newProgress = (newCompleted.length / modules.length) * 100;
-    setProgress(newProgress);
-    
-    // Award XP (50 XP per module, 100 XP per level)
-    const xpGain = 50;
-    const currentXp = xp;
-    const newXp = currentXp + xpGain;
-    const newLevel = Math.floor(newXp / 100) + 1;
-    
-    setXp(newXp);
-    setLevel(newLevel);
-    
-    // Update user XP in database
-    try {
-      const xpResult = await updateUserXP(userId, xpGain);
-      if (xpResult.error) {
-        console.error('Error updating XP:', xpResult.error);
-      } else {
-        // Update user store
-        useUserStore.setState((state) => {
-          if (state.user) {
-            return {
-              user: {
-                ...state.user,
-                xp: xpResult.xp || newXp,
-                level: xpResult.level || newLevel,
-              },
-            };
-          }
-          return state;
-        });
-      }
-    } catch (error) {
-      console.error('Error updating XP:', error);
-    }
-    
-    toast({
-      title: 'Module Completed!',
-      description: `You earned ${xpGain} XP!`,
-    });
-    
+    // Play success sound
+    playSound('success');
+
     // Save progress
-    if (courseId && !courseId.startsWith('ext-')) {
-      // Database course - save to Supabase
-      const result = await completeModule(courseId, moduleNum);
-      if (result.error) {
-        console.error('Error saving progress:', result.error);
-        toast({
-          title: 'Warning',
-          description: 'Progress saved locally but failed to sync to server',
-          variant: 'destructive',
-        });
-      }
-    } else if (courseId && courseId.startsWith('ext-')) {
-      // External course - save to localStorage
-      try {
-        const progressData = {
-          progress: newProgress,
-          completedModules: newCompleted,
-          lastUpdated: new Date().toISOString(),
-        };
-        localStorage.setItem(`course_progress_${courseId}`, JSON.stringify(progressData));
-      } catch (error) {
-        console.error('Error saving progress to localStorage:', error);
-      }
+    if (courseId) {
+      const progressData = {
+        completedLessons: Array.from(newCompleted),
+        currentLesson,
+        lastUpdated: new Date().toISOString(),
+      };
+      localStorage.setItem(`course_progress_${courseId}`, JSON.stringify(progressData));
     }
-    
-    // Trigger dashboard refresh event
-    window.dispatchEvent(new CustomEvent('dashboard-refresh'));
+
+    toast({
+      title: 'Lesson Completed!',
+      description: `You've earned 50 XP`,
+    });
   };
 
-  const isTechCourse = course && ('is_tech' in course ? course.is_tech : course.category === 'coding' || course.category === 'tech');
+  // Navigate to next lesson
+  const handleNextLesson = () => {
+    if (!course || !currentLesson) return;
 
+    const currentModule = course.modules.find(m => m.id === currentLesson.moduleId);
+    if (!currentModule) return;
+
+    const currentLessonIndex = currentModule.lessons.findIndex(l => l.id === currentLesson.lessonId);
+    
+    // Check if there's a next lesson in current module
+    if (currentLessonIndex < currentModule.lessons.length - 1) {
+      const nextLesson = currentModule.lessons[currentLessonIndex + 1];
+      setCurrentLesson({
+        moduleId: currentModule.id,
+        lessonId: nextLesson.id,
+      });
+    } else {
+      // Move to first lesson of next module
+      const currentModuleIndex = course.modules.findIndex(m => m.id === currentLesson.moduleId);
+      if (currentModuleIndex < course.modules.length - 1) {
+        const nextModule = course.modules[currentModuleIndex + 1];
+        if (nextModule.lessons.length > 0) {
+          setCurrentLesson({
+            moduleId: nextModule.id,
+            lessonId: nextModule.lessons[0].id,
+          });
+        }
+      } else {
+        toast({
+          title: 'Course Completed!',
+          description: 'Congratulations on finishing this course!',
+        });
+      }
+    }
+  };
+
+  // Navigate to previous lesson
+  const handlePreviousLesson = () => {
+    if (!course || !currentLesson) return;
+
+    const currentModule = course.modules.find(m => m.id === currentLesson.moduleId);
+    if (!currentModule) return;
+
+    const currentLessonIndex = currentModule.lessons.findIndex(l => l.id === currentLesson.lessonId);
+    
+    // Check if there's a previous lesson in current module
+    if (currentLessonIndex > 0) {
+      const prevLesson = currentModule.lessons[currentLessonIndex - 1];
+      setCurrentLesson({
+        moduleId: currentModule.id,
+        lessonId: prevLesson.id,
+      });
+    } else {
+      // Move to last lesson of previous module
+      const currentModuleIndex = course.modules.findIndex(m => m.id === currentLesson.moduleId);
+      if (currentModuleIndex > 0) {
+        const prevModule = course.modules[currentModuleIndex - 1];
+        if (prevModule.lessons.length > 0) {
+          setCurrentLesson({
+            moduleId: prevModule.id,
+            lessonId: prevModule.lessons[prevModule.lessons.length - 1].id,
+          });
+        }
+      }
+    }
+  };
+
+  // Toggle bookmark
+  const handleToggleBookmark = () => {
+    if (!courseId) return;
+
+    const bookmarks = JSON.parse(localStorage.getItem('bookmarked_courses') || '[]');
+    let newBookmarks: string[];
+
+    if (isBookmarked) {
+      newBookmarks = bookmarks.filter((id: string) => id !== courseId);
+      toast({ title: 'Bookmark removed' });
+    } else {
+      newBookmarks = [...bookmarks, courseId];
+      toast({ title: 'Course bookmarked!' });
+    }
+
+    localStorage.setItem('bookmarked_courses', JSON.stringify(newBookmarks));
+    setIsBookmarked(!isBookmarked);
+  };
+
+  // Check if lesson is completed
+  const isLessonCompleted = (moduleId: string, lessonId: string) => {
+    return completedLessons.has(`${moduleId}-${lessonId}`);
+  };
+
+  // Loading state
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>Loading course...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!course) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Card>
-          <CardContent className="p-12 text-center">
-            <p className="text-muted-foreground mb-4">Course not found</p>
-            <Button onClick={() => navigate('/courses')}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Courses
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const currentModule = modules.find(m => m.module_number === activeModule);
-
-  return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/courses')}
-          className="mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Courses
-        </Button>
-
-        <div className="mb-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2">{course.title}</h1>
-              <p className="text-muted-foreground text-lg">{course.description}</p>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center space-y-4">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-[#C9B458] mx-auto"></div>
+              <p className="text-lg text-muted-foreground">Loading course...</p>
             </div>
           </div>
-
-          {/* Gamification Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-primary/10 p-2">
-                    <Target className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Progress</p>
-                    <p className="text-2xl font-bold">{Math.round(progress)}%</p>
-                  </div>
-                </div>
-                <Progress value={progress} className="mt-2" />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-yellow-500/10 p-2">
-                    <Zap className="h-5 w-5 text-yellow-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">XP</p>
-                    <p className="text-2xl font-bold">{xp}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-purple-500/10 p-2">
-                    <Trophy className="h-5 w-5 text-purple-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Level</p>
-                    <p className="text-2xl font-bold">{level}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-full bg-green-500/10 p-2">
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Completed</p>
-                    <p className="text-2xl font-bold">{completedModules.length}/{modules.length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
-      </motion.div>
+      </div>
+    );
+  }
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar - Module List */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Modules</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="space-y-1">
-                {modules.map((module) => (
-                  <button
-                    key={module.id}
-                    onClick={() => setActiveModule(module.module_number)}
-                    className={`w-full text-left p-3 hover:bg-accent transition-colors ${
-                      activeModule === module.module_number ? 'bg-accent' : ''
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {completedModules.includes(module.module_number) ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <PlayCircle className="h-4 w-4 text-muted-foreground" />
-                        )}
-                        <span className="text-sm font-medium">
-                          {module.module_number}. {module.title}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 ml-6">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">{module.time_required} min</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
+  // Error state
+  if (!course) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <CardContent className="p-12 text-center space-y-4">
+              <h2 className="text-2xl font-bold">Course Not Found</h2>
+              <p className="text-muted-foreground">The course you're looking for doesn't exist.</p>
+              <Button onClick={() => navigate('/courses')} className="mt-4">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Courses
+              </Button>
             </CardContent>
           </Card>
         </div>
+      </div>
+    );
+  }
 
-        {/* Main Content Area */}
-        <div className="lg:col-span-3">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="content">
-                <BookOpen className="mr-2 h-4 w-4" />
-                Content
-              </TabsTrigger>
-              {isTechCourse && (
-                <TabsTrigger value="ide">
-                  <Code className="mr-2 h-4 w-4" />
-                  IDE
-                </TabsTrigger>
-              )}
-              <TabsTrigger value="discussion">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Discussion
-              </TabsTrigger>
-            </TabsList>
+  const activeLesson = getCurrentLesson();
+  const activeModule = getCurrentModule();
 
-            <TabsContent value="content" className="mt-6">
-              {currentModule ? (
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle>{currentModule.title}</CardTitle>
-                        <CardDescription>{currentModule.summary}</CardDescription>
-                      </div>
-                      {!completedModules.includes(currentModule.module_number) && (
-                        <Button
-                          onClick={() => handleModuleComplete(currentModule.module_number)}
-                          size="sm"
-                        >
-                          <CheckCircle2 className="mr-2 h-4 w-4" />
-                          Mark Complete
-                        </Button>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Concepts */}
-                    {currentModule.content.concepts && currentModule.content.concepts.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3">Key Concepts</h3>
-                        <ul className="space-y-2">
-                          {currentModule.content.concepts.map((concept, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <Star className="h-4 w-4 text-yellow-500 mt-1 flex-shrink-0" />
-                              <span>{concept}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Content Blocks */}
-                    {currentModule.content.content_blocks && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3">Lesson Content</h3>
-                        <div className="prose max-w-none">
-                          {currentModule.content.content_blocks.map((block: any, idx: number) => (
-                            <div key={idx} className="mb-6">
-                              {block.type === 'text' && (
-                                <div 
-                                  className="whitespace-pre-wrap prose dark:prose-invert max-w-none"
-                                  dangerouslySetInnerHTML={{ 
-                                    __html: block.content
-                                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                      .replace(/```python\n([\s\S]*?)```/g, '<pre class="bg-muted p-4 rounded-lg overflow-x-auto"><code class="text-sm">$1</code></pre>')
-                                      .replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-sm">$1</code>')
-                                      .replace(/\n/g, '<br />')
-                                  }} 
-                                />
-                              )}
-                              {block.type === 'code' && (
-                                <div className="space-y-2">
-                                  {block.title && (
-                                    <h4 className="text-lg font-semibold mb-2">{block.title}</h4>
-                                  )}
-                                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto">
-                                    <code className="text-sm">{block.content}</code>
-                                  </pre>
-                                  {block.explanation && (
-                                    <p className="text-sm text-muted-foreground italic">
-                                      {block.explanation}
-                                    </p>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Examples */}
-                    {currentModule.content.examples && currentModule.content.examples.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3">Examples</h3>
-                        <div className="space-y-3">
-                          {currentModule.content.examples.map((example, idx) => (
-                            <Card key={idx} className="bg-muted/50">
-                              <CardContent className="p-4">
-                                <p>{example}</p>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Practice Tasks */}
-                    {currentModule.practice_tasks && currentModule.practice_tasks.length > 0 && (
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3">Practice Tasks</h3>
-                        <div className="space-y-3">
-                          {currentModule.practice_tasks.map((task, idx) => (
-                            <Card key={idx}>
-                              <CardContent className="p-4">
-                                <h4 className="font-semibold mb-2">{task.title}</h4>
-                                <p className="text-sm text-muted-foreground">{task.description}</p>
-                                <Badge className="mt-2">{task.difficulty}</Badge>
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Navigation */}
-                    <div className="flex justify-between pt-6 border-t">
-                      <Button
-                        variant="outline"
-                        onClick={() => setActiveModule(Math.max(1, activeModule - 1))}
-                        disabled={activeModule === 1}
-                      >
-                        Previous Module
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          if (activeModule < modules.length) {
-                            setActiveModule(activeModule + 1);
-                          } else {
-                            handleModuleComplete(activeModule);
-                          }
-                        }}
-                        disabled={activeModule === modules.length && completedModules.includes(activeModule)}
-                      >
-                        {activeModule < modules.length ? 'Next Module' : 'Complete Course'}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <p className="text-muted-foreground">No modules available</p>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
-            {isTechCourse && (
-              <TabsContent value="ide" className="mt-6">
-                <IDE courseId={courseId!} moduleNumber={activeModule} />
-              </TabsContent>
-            )}
-
-            <TabsContent value="discussion" className="mt-6">
-              <DiscussionForum courseId={courseId!} courseTitle={course.title} />
-            </TabsContent>
-          </Tabs>
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="min-h-screen bg-background"
+    >
+      {/* Breadcrumb */}
+      <div className="border-b-4 border-black bg-white">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <button onClick={() => navigate('/dashboard')} className="hover:text-foreground transition-colors">
+              Dashboard
+            </button>
+            <ChevronRight className="h-4 w-4" />
+            <button onClick={() => navigate('/courses')} className="hover:text-foreground transition-colors">
+              Courses
+            </button>
+            <ChevronRight className="h-4 w-4" />
+            <span className="text-foreground font-medium">{course.title}</span>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Hero Header */}
+      <div className="relative border-b-4 border-black bg-gradient-to-br from-[#C9B458]/10 via-[#C27BA0]/10 to-[#6DAEDB]/10 overflow-hidden">
+        <div className="absolute inset-0 opacity-30">
+          <ThreeDFallback fallbackColor="from-[#C9B458]/5 to-[#6DAEDB]/5">
+            <GridScan />
+          </ThreeDFallback>
+        </div>
+        
+        <div className="container mx-auto px-4 py-12 relative z-10">
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/courses')}
+              className="mb-6"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Courses
+            </Button>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left: Course Info */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Badge className={`${getDifficultyColor(course.difficulty)} border-2 text-sm px-3 py-1`}>
+                      {course.difficulty.toUpperCase()}
+                    </Badge>
+                    <Badge className="bg-[#C9B458]/10 text-[#C9B458] border-2 border-[#C9B458]/20 text-sm px-3 py-1">
+                      {course.category}
+                    </Badge>
+                  </div>
+
+                  <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{course.title}</h1>
+                  
+                  <p className="text-lg text-muted-foreground max-w-3xl">{course.description}</p>
+
+                  {/* Course Meta */}
+                  <div className="flex flex-wrap items-center gap-6 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span>{course.enrolledStudents.toLocaleString()} enrolled</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>{course.duration}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4 text-muted-foreground" />
+                      <span>{course.lessonsCount} lessons</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                      <span className="font-semibold">{course.rating.toFixed(1)}</span>
+                      <span className="text-muted-foreground">({course.reviews} reviews)</span>
+                    </div>
+                  </div>
+
+                  {/* Instructor */}
+                  <div className="flex items-center gap-3 pt-2">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#C9B458] to-[#C27BA0] flex items-center justify-center text-white font-bold">
+                      {course.instructor.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Instructor</p>
+                      <p className="font-semibold">{course.instructor}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-4 flex-wrap">
+                  <Button
+                    size="lg"
+                    className="bg-[#C9B458] hover:bg-[#B8A347] text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                    onClick={() => setActiveTab('curriculum')}
+                  >
+                    <PlayCircle className="mr-2 h-5 w-5" />
+                    {progressPercentage > 0 ? 'Continue Learning' : 'Start Course'}
+                  </Button>
+                  
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                    onClick={handleToggleBookmark}
+                  >
+                    <BookMarked className={`mr-2 h-5 w-5 ${isBookmarked ? 'fill-current' : ''}`} />
+                    {isBookmarked ? 'Bookmarked' : 'Bookmark'}
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-4 border-black bg-[#C27BA0]/10 hover:bg-[#C27BA0]/20 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                    onClick={() => navigate('/workspace')}
+                  >
+                    <LayoutGrid className="mr-2 h-5 w-5" />
+                    Open in Workspace
+                  </Button>
+                </div>
+              </div>
+
+              {/* Right: Progress Card */}
+              <div className="lg:col-span-1">
+                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="h-5 w-5 text-[#C9B458]" />
+                      Your Progress
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Progress Bar */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Completion</span>
+                        <span className="font-bold text-[#C9B458]">{Math.round(progressPercentage)}%</span>
+                      </div>
+                      <div className="relative h-3 bg-muted border-2 border-black rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progressPercentage}%` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#C9B458] to-[#C27BA0]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>Completed</span>
+                        </div>
+                        <p className="text-2xl font-bold">{completedLessons.size}/{totalLessons}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                          <Zap className="h-4 w-4" />
+                          <span>XP Earned</span>
+                        </div>
+                        <p className="text-2xl font-bold text-[#C9B458]">{completedLessons.size * 50}</p>
+                      </div>
+                    </div>
+
+                    <Separator className="bg-black" />
+
+                    {/* Quick Stats */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Total Modules</span>
+                        <span className="font-semibold">{course.modules.length}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Total Lessons</span>
+                        <span className="font-semibold">{totalLessons}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Estimated Time</span>
+                        <span className="font-semibold">{course.duration}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 border-4 border-black p-1 bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-[#C9B458] data-[state=active]:text-white">
+              <Sparkles className="mr-2 h-4 w-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="curriculum" className="data-[state=active]:bg-[#C9B458] data-[state=active]:text-white">
+              <BookOpen className="mr-2 h-4 w-4" />
+              Curriculum
+            </TabsTrigger>
+            <TabsTrigger value="resources" className="data-[state=active]:bg-[#C9B458] data-[state=active]:text-white">
+              <Download className="mr-2 h-4 w-4" />
+              Resources
+            </TabsTrigger>
+            <TabsTrigger value="reviews" className="data-[state=active]:bg-[#C9B458] data-[state=active]:text-white">
+              <Star className="mr-2 h-4 w-4" />
+              Reviews
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                {/* What You'll Learn */}
+                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-[#C9B458]" />
+                      What You'll Learn
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {course.skills.slice(0, 6).map((skill, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="flex items-start gap-3"
+                        >
+                          <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span>{skill}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Course Description */}
+                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                  <CardHeader>
+                    <CardTitle>About This Course</CardTitle>
+                  </CardHeader>
+                  <CardContent className="prose max-w-none">
+                    <p className="text-muted-foreground leading-relaxed">{course.description}</p>
+                    <p className="mt-4 text-muted-foreground leading-relaxed">
+                      This comprehensive course is designed to take you from beginner to advanced level. 
+                      You'll learn through hands-on projects, real-world examples, and interactive exercises.
+                      By the end of this course, you'll have the skills and confidence to build your own projects.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Prerequisites */}
+                {course.prerequisites.length > 0 && (
+                  <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BookOpen className="h-5 w-5 text-[#C27BA0]" />
+                        Prerequisites
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-2">
+                        {course.prerequisites.map((prereq, index) => (
+                          <li key={index} className="flex items-start gap-3">
+                            <ChevronRight className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <span>{prereq}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* Sidebar */}
+              <div className="space-y-6">
+                {/* Skills */}
+                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Skills You'll Gain</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {course.skills.map((skill, index) => (
+                        <Badge
+                          key={index}
+                          variant="outline"
+                          className="border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Instructor */}
+                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Instructor</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#C9B458] to-[#C27BA0] flex items-center justify-center text-white font-bold text-2xl border-4 border-black">
+                        {course.instructor.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">{course.instructor}</p>
+                        <p className="text-sm text-muted-foreground">Expert Instructor</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Experienced educator with years of industry expertise in {course.category}.
+                      Passionate about teaching and helping students succeed.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Related Courses */}
+                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Related Courses</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {MOCK_COURSES.filter(c => c.id !== courseId && c.category === course.category)
+                      .slice(0, 3)
+                      .map((relatedCourse) => (
+                        <button
+                          key={relatedCourse.id}
+                          onClick={() => navigate(`/courses/${relatedCourse.id}`)}
+                          className="w-full text-left p-3 rounded-lg border-2 border-black hover:bg-accent transition-colors"
+                        >
+                          <p className="font-semibold text-sm line-clamp-1">{relatedCourse.title}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                            <span className="text-xs text-muted-foreground">{relatedCourse.rating.toFixed(1)}</span>
+                          </div>
+                        </button>
+                      ))}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Curriculum Tab */}
+          <TabsContent value="curriculum" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Module Sidebar */}
+              <div className="lg:col-span-1">
+                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sticky top-4">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Modules</CardTitle>
+                    <CardDescription>{course.modules.length} modules â€¢ {totalLessons} lessons</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <Accordion type="single" collapsible className="w-full">
+                      {course.modules.map((module, moduleIndex) => {
+                        const moduleProgress = module.lessons.filter(l => 
+                          isLessonCompleted(module.id, l.id)
+                        ).length;
+                        const modulePercentage = (moduleProgress / module.lessons.length) * 100;
+
+                        return (
+                          <AccordionItem key={module.id} value={module.id} className="border-b-2 border-black px-4">
+                            <AccordionTrigger className="hover:no-underline py-4">
+                              <div className="flex items-start gap-3 text-left flex-1">
+                                <div className="mt-1">
+                                  {moduleProgress === module.lessons.length ? (
+                                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                  ) : moduleProgress > 0 ? (
+                                    <div className="h-5 w-5 rounded-full border-2 border-[#C9B458] bg-[#C9B458]/20" />
+                                  ) : (
+                                    <div className="h-5 w-5 rounded-full border-2 border-muted-foreground" />
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-semibold text-sm">Module {moduleIndex + 1}</p>
+                                  <p className="text-xs text-muted-foreground line-clamp-2">{module.title}</p>
+                                  <div className="mt-2 space-y-1">
+                                    <div className="h-1 bg-muted rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-[#C9B458]"
+                                        style={{ width: `${modulePercentage}%` }}
+                                      />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      {moduleProgress}/{module.lessons.length} lessons
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pb-4">
+                              <div className="space-y-1 pl-8">
+                                {module.lessons.map((lesson) => {
+                                  const isCompleted = isLessonCompleted(module.id, lesson.id);
+                                  const isCurrent = currentLesson?.moduleId === module.id && 
+                                                   currentLesson?.lessonId === lesson.id;
+
+                                  return (
+                                    <button
+                                      key={lesson.id}
+                                      onClick={() => setCurrentLesson({ moduleId: module.id, lessonId: lesson.id })}
+                                      className={`w-full text-left p-2 rounded-lg border-2 transition-all ${
+                                        isCurrent
+                                          ? 'border-[#C9B458] bg-[#C9B458]/10'
+                                          : 'border-transparent hover:border-black hover:bg-accent'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        {isCompleted ? (
+                                          <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                        ) : (
+                                          <div className="h-4 w-4">{getLessonIcon(lesson.type)}</div>
+                                        )}
+                                        <span className="text-sm line-clamp-1 flex-1">{lesson.title}</span>
+                                        <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                        <span className="text-xs text-muted-foreground">{lesson.duration}</span>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                    </Accordion>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Lesson Content */}
+              <div className="lg:col-span-3">
+                <AnimatePresence mode="wait">
+                  {activeLesson && activeModule ? (
+                    <motion.div
+                      key={activeLesson.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                        <CardHeader className="border-b-4 border-black">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="outline" className="border-2 border-black">
+                                {activeLesson.type.toUpperCase()}
+                              </Badge>
+                              <Badge variant="outline" className="border-2 border-black">
+                                {activeLesson.duration}
+                              </Badge>
+                              {isLessonCompleted(activeModule.id, activeLesson.id) && (
+                                <Badge className="bg-green-500 text-white border-2 border-black">
+                                  <CheckCircle2 className="mr-1 h-3 w-3" />
+                                  Completed
+                                </Badge>
+                              )}
+                            </div>
+                            <CardTitle className="text-2xl">{activeLesson.title}</CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                              {activeModule.title} â€¢ Lesson {activeModule.lessons.findIndex(l => l.id === activeLesson.id) + 1} of {activeModule.lessons.length}
+                            </p>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-8 space-y-6">
+                          {/* Lesson Content */}
+                          <div className="prose max-w-none">
+                            {activeLesson.content.split('\n\n').map((paragraph, index) => {
+                              // Check if paragraph is a code block
+                              if (paragraph.includes('```')) {
+                                const code = paragraph.replace(/```.*\n/, '').replace(/```/, '');
+                                return (
+                                  <div key={index} className="my-6">
+                                    <Card className="border-2 border-black bg-muted">
+                                      <CardContent className="p-4">
+                                        <pre className="overflow-x-auto">
+                                          <code className="text-sm">{code}</code>
+                                        </pre>
+                                      </CardContent>
+                                    </Card>
+                                  </div>
+                                );
+                              }
+                              
+                              // Check if it's a heading
+                              if (paragraph.startsWith('## ')) {
+                                return (
+                                  <h2 key={index} className="text-2xl font-bold mt-8 mb-4">
+                                    {paragraph.replace('## ', '')}
+                                  </h2>
+                                );
+                              }
+                              
+                              if (paragraph.startsWith('### ')) {
+                                return (
+                                  <h3 key={index} className="text-xl font-bold mt-6 mb-3">
+                                    {paragraph.replace('### ', '')}
+                                  </h3>
+                                );
+                              }
+
+                              // Regular paragraph
+                              return (
+                                <p key={index} className="leading-relaxed text-muted-foreground mb-4">
+                                  {paragraph}
+                                </p>
+                              );
+                            })}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center justify-between pt-6 border-t-4 border-black">
+                            <Button
+                              variant="outline"
+                              onClick={handlePreviousLesson}
+                              disabled={
+                                course.modules[0].id === currentLesson?.moduleId &&
+                                course.modules[0].lessons[0].id === currentLesson?.lessonId
+                              }
+                              className="border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                            >
+                              <ChevronLeft className="mr-2 h-4 w-4" />
+                              Previous
+                            </Button>
+
+                            {!isLessonCompleted(currentLesson!.moduleId, currentLesson!.lessonId) && (
+                              <Button
+                                onClick={handleCompleteLesson}
+                                className="bg-green-500 hover:bg-green-600 text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                              >
+                                <CheckCircle2 className="mr-2 h-5 w-5" />
+                                Mark as Complete
+                              </Button>
+                            )}
+
+                            <Button
+                              onClick={handleNextLesson}
+                              disabled={
+                                course.modules[course.modules.length - 1].id === currentLesson?.moduleId &&
+                                course.modules[course.modules.length - 1].lessons[
+                                  course.modules[course.modules.length - 1].lessons.length - 1
+                                ].id === currentLesson?.lessonId
+                              }
+                              className="bg-[#C9B458] hover:bg-[#B8A347] text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                            >
+                              Next
+                              <ChevronRight className="ml-2 h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ) : (
+                    <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                      <CardContent className="p-12 text-center">
+                        <p className="text-muted-foreground">Select a lesson to begin</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Resources Tab */}
+          <TabsContent value="resources" className="space-y-6">
+            <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+              <CardHeader>
+                <CardTitle>Course Resources</CardTitle>
+                <CardDescription>Download materials, code examples, and additional resources</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { name: 'Course Slides (PDF)', size: '2.5 MB', type: 'PDF' },
+                  { name: 'Source Code Repository', size: '15 MB', type: 'ZIP' },
+                  { name: 'Practice Exercises', size: '1.2 MB', type: 'PDF' },
+                  { name: 'Cheat Sheet', size: '500 KB', type: 'PDF' },
+                ].map((resource, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 border-2 border-black rounded-lg hover:bg-accent transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-[#C9B458]/10 border-2 border-black flex items-center justify-center">
+                        <Download className="h-5 w-5 text-[#C9B458]" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{resource.name}</p>
+                        <p className="text-sm text-muted-foreground">{resource.type} â€¢ {resource.size}</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="border-2 border-black">
+                      Download
+                    </Button>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Reviews Tab */}
+          <TabsContent value="reviews" className="space-y-6">
+            <Card className="border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Student Reviews</CardTitle>
+                    <CardDescription>{course.reviews} total reviews</CardDescription>
+                  </div>
+                  <div className="text-center">
+                    <div className="flex items-center gap-2">
+                      <Star className="h-8 w-8 fill-yellow-500 text-yellow-500" />
+                      <span className="text-4xl font-bold">{course.rating.toFixed(1)}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Average Rating</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Mock Reviews */}
+                {[
+                  { name: 'Sarah Johnson', rating: 5, date: '2 weeks ago', comment: 'Excellent course! The instructor explains everything clearly and the hands-on projects are really helpful.' },
+                  { name: 'Mike Chen', rating: 4, date: '1 month ago', comment: 'Great content and well structured. Would recommend to anyone starting out.' },
+                  { name: 'Emily Rodriguez', rating: 5, date: '1 month ago', comment: 'Best course I\'ve taken on this platform. The examples are practical and easy to follow.' },
+                ].map((review, index) => (
+                  <div key={index} className="p-4 border-2 border-black rounded-lg">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#C27BA0] to-[#6DAEDB] flex items-center justify-center text-white font-bold border-2 border-black">
+                          {review.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-semibold">{review.name}</p>
+                          <p className="text-xs text-muted-foreground">{review.date}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: review.rating }).map((_, i) => (
+                          <Star key={i} className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-muted-foreground">{review.comment}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </motion.div>
   );
 }
-

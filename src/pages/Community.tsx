@@ -12,6 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TranslatedText } from '@/components/TranslatedText';
 import { useToast } from '@/hooks/use-toast';
 import {
+  MOCK_FORUM_POSTS,
+  MOCK_STUDY_GROUPS,
+  MOCK_MENTORS,
+  MOCK_LEADERBOARD,
+  USE_MOCK_DATA,
+  mockDelay,
+} from '@/mocks';
+import {
   Users,
   MessageSquare,
   Trophy,
@@ -84,13 +92,36 @@ export default function Community() {
 
   // Leaderboard state
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load data
   useEffect(() => {
-    loadForumPosts();
-    loadStudyGroups();
-    loadMentors();
-    loadLeaderboard();
+    let mounted = true;
+    
+    const loadAllData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([
+          loadForumPosts(),
+          loadStudyGroups(),
+          loadMentors(),
+          loadLeaderboard()
+        ]);
+      } catch (err) {
+        console.error('Error loading community data:', err);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    loadAllData();
+    
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -98,8 +129,18 @@ export default function Community() {
   }, [leaderboardPeriod]);
 
   const loadForumPosts = async () => {
-    const posts = await getForumPosts();
-    setForumPosts(posts);
+    try {
+      if (USE_MOCK_DATA) {
+        await mockDelay(300);
+        setForumPosts(MOCK_FORUM_POSTS as any);
+      } else {
+        const posts = await getForumPosts();
+        setForumPosts(posts);
+      }
+    } catch (err) {
+      console.error('Failed to load forum posts:', err);
+      setLoadingError('Failed to load forum posts');
+    }
   };
 
   const loadPostReplies = async (postId: string) => {
@@ -110,18 +151,45 @@ export default function Community() {
   };
 
   const loadStudyGroups = async () => {
-    const groups = await getStudyGroups();
-    setStudyGroups(groups);
+    try {
+      if (USE_MOCK_DATA) {
+        await mockDelay(300);
+        setStudyGroups(MOCK_STUDY_GROUPS as any);
+      } else {
+        const groups = await getStudyGroups();
+        setStudyGroups(groups);
+      }
+    } catch (err) {
+      console.error('Failed to load study groups:', err);
+    }
   };
 
   const loadMentors = async () => {
-    const mentorsList = await getMentors();
-    setMentors(mentorsList);
+    try {
+      if (USE_MOCK_DATA) {
+        await mockDelay(300);
+        setMentors(MOCK_MENTORS as any);
+      } else {
+        const mentorsList = await getMentors();
+        setMentors(mentorsList);
+      }
+    } catch (err) {
+      console.error('Failed to load mentors:', err);
+    }
   };
 
   const loadLeaderboard = async () => {
-    const entries = await getLeaderboard(leaderboardPeriod);
-    setLeaderboard(entries);
+    try {
+      if (USE_MOCK_DATA) {
+        await mockDelay(300);
+        setLeaderboard(MOCK_LEADERBOARD as any);
+      } else {
+        const entries = await getLeaderboard(leaderboardPeriod);
+        setLeaderboard(entries);
+      }
+    } catch (err) {
+      console.error('Failed to load leaderboard:', err);
+    }
   };
 
   // Forum handlers
@@ -264,10 +332,33 @@ export default function Community() {
     return date.toLocaleDateString();
   };
 
-  const filteredMentors = mentors.filter((mentor) =>
-    mentor.name.toLowerCase().includes(mentorSearch.toLowerCase()) ||
-    mentor.specialization.some((spec) => spec.toLowerCase().includes(mentorSearch.toLowerCase()))
-  );
+  const filteredMentors = mentors.filter((mentor) => {
+    const expertise = (mentor as any).expertise || (mentor as any).specialization || [];
+    return (
+      mentor.name.toLowerCase().includes(mentorSearch.toLowerCase()) ||
+      expertise.some((spec: string) => spec.toLowerCase().includes(mentorSearch.toLowerCase()))
+    );
+  });
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8 flex items-center gap-3">
+          <Users className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold">Community</h1>
+        </div>
+        <Card>
+          <CardContent className="flex items-center justify-center p-20">
+            <div className="text-center">
+              <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <p className="mt-4 text-muted-foreground">Loading community...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -358,9 +449,9 @@ export default function Community() {
                       <h3 className="mb-1 text-lg font-semibold">{post.title}</h3>
                       <div className="mb-2 flex items-center gap-2">
                         <Avatar className="h-6 w-6">
-                          <AvatarFallback>{post.user_name.charAt(0).toUpperCase()}</AvatarFallback>
+                          <AvatarFallback>{post.user_name?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
                         </Avatar>
-                        <p className="text-sm text-muted-foreground">{post.user_name}</p>
+                        <p className="text-sm text-muted-foreground">{post.user_name || 'Anonymous'}</p>
                       </div>
                       <p className="text-muted-foreground whitespace-pre-wrap">{post.content}</p>
                     </div>
@@ -437,11 +528,11 @@ export default function Community() {
                           <div className="flex items-center gap-2">
                             <Avatar className="h-6 w-6">
                               <AvatarFallback className="text-xs">
-                                {reply.user_name.charAt(0).toUpperCase()}
+                                {reply.user_name?.charAt(0)?.toUpperCase() || 'U'}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="text-sm font-semibold">{reply.user_name}</p>
+                              <p className="text-sm font-semibold">{reply.user_name || 'Anonymous'}</p>
                               <p className="text-xs text-muted-foreground">{formatTimeAgo(reply.created_at)}</p>
                             </div>
                           </div>
@@ -582,15 +673,15 @@ export default function Community() {
                   <CardHeader>
                     <div className="flex items-start gap-4">
                       <Avatar className="h-12 w-12">
-                        <AvatarFallback>{mentor.name.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback>{mentor.name?.charAt(0)?.toUpperCase() || 'M'}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <CardTitle className="text-lg">{mentor.name}</CardTitle>
+                        <CardTitle className="text-lg">{mentor.name || 'Mentor'}</CardTitle>
                         <div className="mt-1 flex items-center gap-1">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                           <span className="text-sm font-semibold">{mentor.rating}</span>
                           <span className="text-xs text-muted-foreground">
-                            ({mentor.students_count} <TranslatedText text="students" />)
+                            ({(mentor as any).sessionsCompleted || (mentor as any).students_count || 0} <TranslatedText text="students" />)
                           </span>
                         </div>
                       </div>
@@ -601,7 +692,7 @@ export default function Community() {
                       <p className="text-sm text-muted-foreground">{mentor.bio}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {mentor.specialization.map((spec) => (
+                      {((mentor as any).expertise || (mentor as any).specialization || []).map((spec: string) => (
                         <Badge key={spec} variant="secondary">
                           {spec}
                         </Badge>
@@ -686,12 +777,12 @@ export default function Community() {
                       </div>
                       <Avatar>
                         <AvatarFallback>
-                          {user.name.charAt(0).toUpperCase()}
+                          {user.name?.charAt(0)?.toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-semibold">
-                          {user.name} {user.is_current_user && '(You)'}
+                          {user.name || 'User'} {user.is_current_user && '(You)'}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {user.xp.toLocaleString()} XP • Level {user.level}

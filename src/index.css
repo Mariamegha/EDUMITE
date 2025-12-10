@@ -265,3 +265,55 @@ All colors MUST be HSL.
 .dark input[type='time']::-moz-focus-inner {
   filter: invert(1);
 }
+
+/* Phase 15: Accessibility Suite Styles */
+
+/* High Contrast Mode */
+.high-contrast {
+  --tw-border-opacity: 1 !important;
+  --tw-shadow: 0 0 0 4px rgba(0, 0, 0, 1) !important;
+}
+
+.high-contrast * {
+  border-width: 3px !important;
+  font-weight: 700 !important;
+}
+
+/* Colorblind SVG Filters */
+.colorblind-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Dyslexia Font Fallback */
+.dyslexia-font {
+  font-family: 'Comic Sans MS', 'Verdana', sans-serif !important;
+  letter-spacing: 0.05em;
+  word-spacing: 0.1em;
+  line-height: 1.6;
+}
+
+/* Caption Bar Responsive */
+@media (max-width: 768px) {
+  .caption-bar {
+    font-size: 0.875rem;
+    padding: 0.75rem;
+  }
+}
+
+/* Accessibility Focus Indicators */
+*:focus-visible {
+  outline: 4px solid #C9B458 !important;
+  outline-offset: 2px !important;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

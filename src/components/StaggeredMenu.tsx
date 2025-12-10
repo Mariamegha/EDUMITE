@@ -12,7 +12,12 @@ import {
   StickyNote,
   Glasses,
   Calendar,
-  X
+  X,
+  Trophy,
+  Target,
+  Heart,
+  Award,
+  Gamepad2
 } from 'lucide-react';
 import './StaggeredMenu.css';
 
@@ -35,11 +40,16 @@ const menuItems: MenuItem[] = [
   { path: '/roadmap', label: 'Roadmap', icon: Map, color: '#FF1493' },
   { path: '/notes', label: 'Notes', icon: StickyNote, color: '#FFD700' },
   { path: '/study-planner', label: 'Planner', icon: Calendar, color: '#FF1493' },
-  { path: '/focus', label: 'Focus Room', icon: Glasses, color: '#FFD700' },
-  { path: '/study-vr', label: 'VR Study', icon: Glasses, color: '#FF1493' },
-  { path: '/community', label: 'Community', icon: Users, color: '#FFD700' },
-  { path: '/analytics', label: 'Analytics', icon: BarChart3, color: '#FF1493' },
-  { path: '/settings', label: 'Settings', icon: Settings, color: '#FFD700' },
+  { path: '/performance-tiers', label: 'Performance', icon: Trophy, color: '#FFD700' },
+  { path: '/smart-opportunities', label: 'Opportunities', icon: Target, color: '#FF1493' },
+  { path: '/wellness', label: 'Wellness', icon: Heart, color: '#FFD700' },
+  { path: '/schemes', label: 'Schemes', icon: Award, color: '#FF1493' },
+  { path: '/game', label: 'Game Center', icon: Gamepad2, color: '#FFD700' },
+  { path: '/focus', label: 'Focus Room', icon: Glasses, color: '#FF1493' },
+  { path: '/study-vr', label: 'VR Study', icon: Glasses, color: '#FFD700' },
+  { path: '/community', label: 'Community', icon: Users, color: '#FF1493' },
+  { path: '/analytics', label: 'Analytics', icon: BarChart3, color: '#FFD700' },
+  { path: '/settings', label: 'Settings', icon: Settings, color: '#FF1493' },
 ];
 
 export default function StaggeredMenu({ isOpen, onClose }: StaggeredMenuProps) {
