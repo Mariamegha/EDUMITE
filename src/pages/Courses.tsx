@@ -244,9 +244,9 @@ export default function Courses() {
       if (result.courses && result.courses.length > 0) {
         // Display all static courses
         setExternalCourses(result.courses);
-        console.log('Loaded external courses:', result.courses.length);
+
       } else if (result.error) {
-        console.warn('Failed to load external courses:', result.error);
+
         // Set empty array to prevent retries
         setExternalCourses([]);
       } else {
@@ -1192,3 +1192,5 @@ export default function Courses() {
     </div>
   );
 }
+
+

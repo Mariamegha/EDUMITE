@@ -18,7 +18,10 @@ import {
   Target,
   Heart,
   Award,
-  Gamepad2
+  Gamepad2,
+  Hand,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import './DockNav.css';
 
@@ -41,6 +44,7 @@ const dockItems: DockItem[] = [
   { icon: <Target size={24} />, label: 'Opportunities', href: '/smart-opportunities' },
   { icon: <Heart size={24} />, label: 'Wellness', href: '/wellness' },
   { icon: <Award size={24} />, label: 'Schemes', href: '/schemes' },
+  { icon: <Hand size={24} />, label: 'Sign Language', href: '/sign-language' },
   { icon: <Gamepad2 size={24} />, label: 'Game Center', href: '/game' },
   { icon: <Glasses size={24} />, label: 'Study VR', href: '/study-vr' },
   { icon: <Users size={24} />, label: 'Community', href: '/community' },
@@ -92,18 +96,93 @@ function DockIcon({ item, mouseX }: { item: DockItem; mouseX: any }) {
 
 export default function DockNav() {
   const mouseX = useMotionValue(Infinity);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setIsVisible(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (!isPinned) {
+      timeoutRef.current = setTimeout(() => {
+        setIsVisible(false);
+      }, 300);
+    }
+  };
+
+  const toggleDock = () => {
+    setIsVisible(!isVisible);
+  };
+
+  const togglePin = () => {
+    setIsPinned(!isPinned);
+    if (!isPinned) {
+      setIsVisible(true);
+    }
+  };
 
   return (
-    <div className="dock-outer">
-      <motion.div
-        onMouseMove={(e) => mouseX.set(e.pageX)}
-        onMouseLeave={() => mouseX.set(Infinity)}
-        className="dock-panel"
+    <>
+      {/* Floating toggle button - always visible at bottom center */}
+      <motion.button
+        onClick={toggleDock}
+        className="fixed bottom-2 left-1/2 transform -translate-x-1/2 z-[101] w-12 h-12 rounded-full bg-gradient-to-br from-gold to-pink border-2 border-black flex items-center justify-center shadow-[0_0_20px_rgba(201,180,88,0.5)] hover:shadow-[0_0_30px_rgba(201,180,88,0.8)] transition-all"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        animate={{ 
+          y: isVisible ? -88 : 0,
+        }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        title="Toggle Dock"
       >
-        {dockItems.map((item) => (
-          <DockIcon key={item.href} item={item} mouseX={mouseX} />
-        ))}
+        <motion.div
+          animate={{ rotate: isVisible ? 180 : 0 }}
+          transition={{ duration: 0.3 }}
+          className="text-black font-bold text-xl"
+        >
+          ▲
+        </motion.div>
+      </motion.button>
+      
+      <motion.div 
+        className="dock-outer"
+        initial={{ y: 100 }}
+        animate={{ y: isVisible || isPinned ? 0 : 100 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <motion.div
+          onMouseMove={(e) => mouseX.set(e.pageX)}
+          onMouseLeave={() => mouseX.set(Infinity)}
+          className="dock-panel relative"
+        >
+          {/* Lock button on dock */}
+          <motion.button
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePin();
+            }}
+            className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-gradient-to-br from-gold to-pink border-2 border-black flex items-center justify-center shadow-brutal-sm hover:scale-110 active:scale-95 transition-transform z-10"
+            whileHover={{ rotate: isPinned ? 0 : 15 }}
+            whileTap={{ scale: 0.9 }}
+            title={isPinned ? 'Unlock to allow hiding' : 'Lock to keep visible'}
+          >
+            {isPinned ? (
+              <Lock size={14} className="text-black" />
+            ) : (
+              <Unlock size={14} className="text-black" />
+            )}
+          </motion.button>
+
+          {dockItems.map((item) => (
+            <DockIcon key={item.href} item={item} mouseX={mouseX} />
+          ))}
+        </motion.div>
       </motion.div>
-    </div>
+    </>
   );
 }

@@ -291,11 +291,11 @@ export default function DashboardGold() {
               />
             </div>
             
-            <div onClick={() => navigate('/settings')} className="cursor-pointer">
+            <div onClick={() => navigate('/sign-language')} className="cursor-pointer">
               <BentoCard
                 label="ACCESSIBILITY"
-                title="Sign Language Avatar"
-                description="Real-time sign language translation"
+                title="Sign Language"
+                description="Learn & translate sign language with AI"
                 icon={<Hand className="w-8 h-8 text-pink" />}
               />
             </div>
@@ -457,3 +457,4 @@ export default function DashboardGold() {
     </div>
   );
 }
+

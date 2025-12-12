@@ -60,22 +60,19 @@ class CCMASignLanguageService {
     if (this.isInitialized) return;
 
     try {
-      console.log('[CCMA] Initializing sign language model...');
-      
+            
       // Check if model exists locally
       const modelExists = await this.checkLocalModel();
       
       if (!modelExists) {
-        console.log('[CCMA] Model not found locally, downloading...');
-        await this.downloadModel();
+                await this.downloadModel();
       }
 
       // Load model (in production, this would load the actual CCMA model)
       this.model = await this.loadModel();
       
       this.isInitialized = true;
-      console.log('[CCMA] Model initialized successfully');
-    } catch (error) {
+          } catch (error) {
       console.error('[CCMA] Failed to initialize model:', error);
       throw new Error('Failed to initialize CCMA sign language model');
     }
@@ -100,12 +97,10 @@ class CCMASignLanguageService {
     
     // Check cache first
     if (this.modelCache.has(cacheKey)) {
-      console.log('[CCMA] Using cached gesture for:', wordOrPhrase);
-      return this.buildSignGesture(wordOrPhrase, language, this.modelCache.get(cacheKey)!);
+            return this.buildSignGesture(wordOrPhrase, language, this.modelCache.get(cacheKey)!);
     }
 
-    console.log('[CCMA] Generating gesture for:', wordOrPhrase);
-
+    
     // Generate gesture data using CCMA model
     const gestureData = await this.model.generateGesture(wordOrPhrase, language);
     
@@ -293,7 +288,6 @@ class CCMASignLanguageService {
   private async downloadModel(): Promise<void> {
     // In production, download from CDN or edge compute
     // For now, we'll simulate the download
-    console.log('[CCMA] Downloading model... (simulated)');
     
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -308,8 +302,7 @@ class CCMASignLanguageService {
     // In production, this would load the actual CCMA TensorFlow/ONNX model
     return {
       initialize: async () => {
-        console.log('[CCMA] Model loaded');
-      },
+              },
       generateGesture: async (word: string, language: SignLanguageType) => {
         return this.generateMockGestureData(word, language);
       },
@@ -320,15 +313,13 @@ class CCMASignLanguageService {
         return keypoints; // In production, apply Gaussian smoothing
       },
       dispose: () => {
-        console.log('[CCMA] Model disposed');
-      },
+              },
     };
   }
 
   private generateMockGestureData(word: string, language: SignLanguageType): GestureData {
     // Generate realistic mock data for demonstration
-    console.log('[CCMA] Generating mock gesture data for:', word);
-    const frameCount = Math.floor(15 + Math.random() * 45); // 15-60 frames
+        const frameCount = Math.floor(15 + Math.random() * 45); // 15-60 frames
     const frames: MotionFrame[] = [];
 
     for (let i = 0; i < frameCount; i++) {
@@ -341,8 +332,7 @@ class CCMASignLanguageService {
       });
     }
 
-    console.log('[CCMA] Generated', frames.length, 'frames for', word);
-
+    
     return {
       pose_keypoints: frames[0].keypoints,
       hand_landmarks_left: frames[0].hand_left,
@@ -414,14 +404,7 @@ class CCMASignLanguageService {
       facial_expression: this.detectFacialExpression(gestureData),
       body_orientation: 'front',
     };
-    
-    console.log('[CCMA] Built gesture:', {
-      word: gesture.word_or_phrase,
-      frames: gesture.gesture_data.motion_path.length,
-      duration: gesture.duration_ms,
-      complexity: gesture.complexity
-    });
-    
+
     return gesture;
   }
 
@@ -654,3 +637,5 @@ export function getCCMAService(): CCMASignLanguageService {
 }
 
 export { CCMASignLanguageService };
+
+

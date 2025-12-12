@@ -17,7 +17,8 @@ import {
   Target,
   Heart,
   Award,
-  Gamepad2
+  Gamepad2,
+  Hand
 } from 'lucide-react';
 import './StaggeredMenu.css';
 
@@ -44,8 +45,9 @@ const menuItems: MenuItem[] = [
   { path: '/smart-opportunities', label: 'Opportunities', icon: Target, color: '#FF1493' },
   { path: '/wellness', label: 'Wellness', icon: Heart, color: '#FFD700' },
   { path: '/schemes', label: 'Schemes', icon: Award, color: '#FF1493' },
-  { path: '/game', label: 'Game Center', icon: Gamepad2, color: '#FFD700' },
-  { path: '/focus', label: 'Focus Room', icon: Glasses, color: '#FF1493' },
+  { path: '/sign-language', label: 'Sign Language', icon: Hand, color: '#FFD700' },
+  { path: '/game', label: 'Game Center', icon: Gamepad2, color: '#FF1493' },
+  { path: '/focus', label: 'Focus Room', icon: Glasses, color: '#FFD700' },
   { path: '/study-vr', label: 'VR Study', icon: Glasses, color: '#FFD700' },
   { path: '/community', label: 'Community', icon: Users, color: '#FF1493' },
   { path: '/analytics', label: 'Analytics', icon: BarChart3, color: '#FFD700' },

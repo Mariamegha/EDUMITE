@@ -267,3 +267,4 @@ export default function StudyPlanner() {
     </div>
   );
 }
+

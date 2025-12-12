@@ -78,14 +78,13 @@ export function SignAvatar({
     // Wait for CWASA to load
     const initAvatar = () => {
       if (typeof window.CWASASigningAvatar === 'undefined') {
-        console.warn('[SignAvatar] CWASA library not loaded yet, retrying...');
+
         setTimeout(initAvatar, 500);
         return;
       }
 
       try {
-        console.log('[SignAvatar] Initializing CWASA avatar:', avatarName);
-        
+
         // Create avatar instance with proper configuration
         const avatar = new window.CWASASigningAvatar({
           containerDiv: containerRef.current,
@@ -100,7 +99,7 @@ export function SignAvatar({
         avatarRef.current = avatar;
         setIsLoading(false);
         setError(null);
-        console.log('[SignAvatar] ✓ CWASA avatar initialized successfully');
+
       } catch (err) {
         console.error('[SignAvatar] Failed to initialize CWASA:', err);
         setError('Failed to initialize avatar. Please check console.');
@@ -118,7 +117,7 @@ export function SignAvatar({
 
     let wordToSign = word || gesture?.word_or_phrase || '';
     if (!wordToSign) {
-      console.warn('[SignAvatar] No word to sign');
+
       return;
     }
 
@@ -130,11 +129,10 @@ export function SignAvatar({
     setCurrentWord(wordToSign);
 
     try {
-      console.log('[SignAvatar] 🤟 Signing word:', wordToSign);
-      
+
       // Use playText method which converts text to SiGML automatically
       avatarRef.current.playText(wordToSign, () => {
-        console.log('[SignAvatar] ✓ Sign animation complete:', wordToSign);
+
         setCurrentWord('');
         onComplete?.();
       });
@@ -184,3 +182,4 @@ export function SignAvatar({
     </div>
   );
 }
+

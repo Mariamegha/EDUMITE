@@ -72,7 +72,7 @@ export async function extractTextFromFile(file: File): Promise<string> {
               pdfjsLib.GlobalWorkerOptions.workerSrc = workerModule.default;
             } catch (e) {
               // If module import fails, disable worker (runs on main thread)
-              console.warn('Could not load PDF worker, using main thread');
+
               pdfjsLib.GlobalWorkerOptions.workerSrc = '';
             }
           }
@@ -212,4 +212,5 @@ export async function deleteNote(noteId: string) {
     return { error: error.message };
   }
 }
+
 

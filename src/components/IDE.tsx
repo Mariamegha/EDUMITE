@@ -33,10 +33,7 @@ type Judge0Response = {
 const defaultSnippets: Record<string, string> = {
   javascript: `// JavaScript Starter Code
 function greet(name) {
-  console.log(
-    \
-Hello, \\\\${name}!\\\nWelcome to the Edura sandbox.\
-  );
+
 }
 
 greet('Learner');`,
@@ -325,4 +322,5 @@ export default function IDE({ courseId, moduleNumber }: IDEProps) {
     </div>
   );
 }
+
 

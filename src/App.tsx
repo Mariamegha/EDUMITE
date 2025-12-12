@@ -49,6 +49,7 @@ import Schemes from "./pages/Schemes";
 import SignLanguage from "./pages/SignLanguage";
 import SignLanguageSetup from "./pages/SignLanguageSetup";
 import SignLanguageLesson from "./pages/SignLanguageLesson";
+import SignLanguageTranslator from "./pages/SignLanguageTranslator";
 
 const queryClient = new QueryClient();
 
@@ -89,12 +90,11 @@ function AuthListener() {
 
     // Listen for auth state changes (OAuth callback, sign out)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 Auth state change:', event, session?.user?.email);
-      
+
       if (event === 'SIGNED_IN' && session) {
         // Prevent duplicate sign-in processing
         if (isAuthenticatedRef.current) {
-          console.log('⚠️ Already authenticated, skipping duplicate SIGNED_IN event');
+
           return;
         }
 
@@ -164,12 +164,12 @@ function AuthListener() {
           }
         }, 100);
       } else if (event === 'SIGNED_OUT') {
-        console.log('👋 User signed out');
+
         useUserStore.getState().logout();
         isAuthenticatedRef.current = false;
         navigate('/login', { replace: true });
       } else if (event === 'TOKEN_REFRESHED') {
-        console.log('🔄 Token refreshed successfully');
+
         // Token refresh is automatic, no action needed
       }
     });
@@ -301,6 +301,16 @@ function ConditionalLayout() {
                       <ErrorBoundary>
                         <ProtectedRoute>
                           <SignLanguageLesson />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/sign-language/translator"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <SignLanguageTranslator />
                         </ProtectedRoute>
                       </ErrorBoundary>
                     }
@@ -540,3 +550,5 @@ const App = () => {
 };
 
 export default App;
+
+

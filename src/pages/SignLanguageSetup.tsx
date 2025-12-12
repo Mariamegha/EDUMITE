@@ -51,13 +51,6 @@ export default function SignLanguageSetup() {
     setErrorMessage(null);
 
     try {
-      console.log('[Setup] Generating lesson with params:', {
-        topic,
-        difficulty,
-        signLanguage,
-        speed,
-        sessionLength
-      });
 
       const lessonService = getGeminiLessonService();
       const result = await lessonService.generateLesson({
@@ -68,8 +61,7 @@ export default function SignLanguageSetup() {
         sessionLengthMinutes: sessionLength,
       });
 
-      console.log('[Setup] Lesson generated successfully');
-
+      
       // Navigate to lesson view
       navigate('/sign-language/lesson', {
         state: { lesson: result.lesson },
@@ -254,3 +246,5 @@ export default function SignLanguageSetup() {
     </div>
   );
 }
+
+

@@ -34,7 +34,7 @@ export async function createRoadmap(userId: string, goal: string) {
     // Ensure userId matches authenticated user
     const authenticatedUserId = session.user.id;
     if (userId !== authenticatedUserId) {
-      console.warn('UserId mismatch, using authenticated user ID');
+
       userId = authenticatedUserId;
     }
 
@@ -82,7 +82,7 @@ export async function createDetailedRoadmap(userId: string, questionnaire: Roadm
     // Ensure userId matches authenticated user
     const authenticatedUserId = session.user.id;
     if (userId !== authenticatedUserId) {
-      console.warn('UserId mismatch, using authenticated user ID');
+
       userId = authenticatedUserId;
     }
 
@@ -209,4 +209,5 @@ export async function deleteRoadmap(roadmapId: string) {
     return { error: error.message };
   }
 }
+
 

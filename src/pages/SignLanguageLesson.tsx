@@ -17,6 +17,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { SignVideoPlayer } from '@/components/signLanguage/SignVideoPlayer';
+import { CWASAAvatar } from '@/components/signLanguage/CWASAAvatar';
 import type { SignLesson } from '@/types/signLanguage';
 import { getCCMAService } from '@/services/ccmaSignLanguage';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,8 @@ export default function SignLanguageLesson() {
   const [showMenu, setShowMenu] = useState(false);
   const [gestures, setGestures] = useState<any[]>([]);
   const [isLoadingGestures, setIsLoadingGestures] = useState(true);
+  const [sigmlFiles, setSigmlFiles] = useState<string[]>([]);
+  const [useRealAvatar, setUseRealAvatar] = useState(true);
 
   if (!lesson) {
     navigate('/sign-language');
@@ -48,32 +51,36 @@ export default function SignLanguageLesson() {
       setIsLoadingGestures(true);
       
       try {
-        console.log('[Lesson] Loading gestures for section:', currentSectionIndex);
+                
+        // Extract words from content for CWASA
+        const words = currentSection.content
+          .toLowerCase()
+          .replace(/[^a-z\s]/g, '')
+          .split(/\s+/)
+          .filter(w => w.length > 2)
+          .slice(0, 15); // Limit to 15 words for performance
+
+                
+        // Convert words to SiGML file names (these should exist in /SignFiles/)
+        const sigmlFileNames = words.map(word => word.toLowerCase());
+        setSigmlFiles(sigmlFileNames);
+
+        // Also load gestures for fallback video player
         const ccmaService = getCCMAService();
         await ccmaService.initialize();
 
         // Get gestures from current section or generate them
         if (currentSection.sign_sequence && currentSection.sign_sequence.length > 0) {
-          console.log('[Lesson] Using existing sign sequence:', currentSection.sign_sequence.length);
-          setGestures(currentSection.sign_sequence);
+                    setGestures(currentSection.sign_sequence);
         } else {
-          console.log('[Lesson] Generating gestures from content');
-          // Generate gestures for key words in the section
-          const words = currentSection.content
-            .split(' ')
-            .slice(0, 10)
-            .filter(w => w.length > 3);
-
-          const generatedGestures = await Promise.all(
+                    const generatedGestures = await Promise.all(
             words.map(async (word) => {
               const cleanWord = word.replace(/[^a-zA-Z]/g, '');
-              console.log('[Lesson] Generating gesture for:', cleanWord);
-              return ccmaService.generateGesture(cleanWord, lesson.sign_language);
+                            return ccmaService.generateGesture(cleanWord, lesson.sign_language);
             })
           );
 
-          console.log('[Lesson] Generated gestures:', generatedGestures.length);
-          setGestures(generatedGestures.filter(g => g !== null));
+                    setGestures(generatedGestures.filter(g => g !== null));
         }
       } catch (error) {
         console.error('[Lesson] Failed to load gestures:', error);
@@ -157,15 +164,14 @@ export default function SignLanguageLesson() {
               </div>
             </div>
           ) : (
-            <SignVideoPlayer
-              gestures={gestures}
-              currentGestureIndex={currentGestureIndex}
-              onGestureChange={setCurrentGestureIndex}
-              subtitles={getCurrentSubtitle()}
+            <CWASAAvatar
+              sigmlFiles={sigmlFiles}
+              avatar="anna"
               speed={speed}
-              onSpeedChange={setSpeed}
-              showControls={true}
               autoPlay={false}
+              showControls={true}
+              onStart={() => {}}
+              onComplete={() => {}}
             />
           )}
         </div>
@@ -328,3 +334,5 @@ export default function SignLanguageLesson() {
     </div>
   );
 }
+
+

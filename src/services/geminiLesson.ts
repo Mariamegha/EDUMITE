@@ -68,9 +68,7 @@ class GeminiLessonService {
       },
     });
     
-    console.log(`[Gemini] Initialized sign language service with model: ${this.modelName}`);
-    console.log(`[Gemini] Note: If you see quota errors, wait 1-2 minutes or get a new API key from a different Google account`);
-  }
+          }
 
   /**
    * Retry helper with exponential backoff
@@ -90,7 +88,6 @@ class GeminiLessonService {
       // If it's a rate limit and we have retries left
       if (isRateLimit && retryCount < this.maxRetries) {
         const delay = this.baseDelay * Math.pow(2, retryCount);
-        console.log(`[Gemini] Rate limited. Retrying in ${delay}ms... (attempt ${retryCount + 1}/${this.maxRetries})`);
         
         await new Promise(resolve => setTimeout(resolve, delay));
         return this.retryWithBackoff(fn, retryCount + 1);
@@ -105,8 +102,7 @@ class GeminiLessonService {
    * Generate a complete sign language lesson
    */
   async generateLesson(request: LessonGenerationRequest): Promise<LessonGenerationResponse> {
-    console.log('[Gemini] Generating lesson for:', request.topic);
-
+    
     let lessonScript: LessonScript;
 
     try {
@@ -115,8 +111,7 @@ class GeminiLessonService {
         // Build context-aware prompt
         const prompt = this.buildLessonPrompt(request);
 
-        console.log('[Gemini] Sending request to API...');
-
+        
         // Generate lesson content with Gemini using GoogleGenerativeAI
         const result = await this.model.generateContent(prompt);
         const response = await result.response;
@@ -126,13 +121,10 @@ class GeminiLessonService {
           throw new Error('Empty response from Gemini API');
         }
 
-        console.log('[Gemini] Received response, parsing...');
-
+        
         // Parse and structure the lesson
         return this.parseLessonResponse(text, request);
       });
-      
-      console.log('[Gemini] Lesson generated successfully');
     } catch (error: any) {
       console.error('[Gemini] API failed, using mock lesson generator:', error.message);
       
@@ -141,10 +133,7 @@ class GeminiLessonService {
       
       // Check if it's a quota error - use mock lesson to allow development
       if (errorMessage.includes('quota') || errorMessage.includes('429') || errorMessage.includes('RATE_LIMIT')) {
-        console.warn('[Gemini] ⚠️ USING MOCK LESSON - Your API key has 0 quota for Asian regions');
-        console.warn('[Gemini] ⚠️ This is temporary fallback for development');
-        console.warn('[Gemini] ⚠️ Get a working API key from US/Europe for production');
-        
+                                
         this.useMockFallback = true;
         lessonScript = this.generateMockLesson(request);
       } else if (errorMessage.includes('401') || errorMessage.includes('403') || errorMessage.includes('API_KEY')) {
@@ -561,8 +550,7 @@ KEY GESTURES: [Complete list of all signs taught in this lesson]
     try {
       await ccmaService.initialize();
     } catch (error) {
-      console.warn('[Gemini] CCMA initialization failed, using text-only lesson');
-      return script;
+            return script;
     }
 
     // Generate gestures for key concepts
@@ -573,8 +561,7 @@ KEY GESTURES: [Complete list of all signs taught in this lesson]
             try {
               return await ccmaService.generateGesture(gesture, signLanguage);
             } catch (error) {
-              console.warn(`[Gemini] Failed to generate gesture for: ${gesture}`);
-              return null;
+                            return null;
             }
           })
         );
@@ -650,8 +637,7 @@ Return only a JSON array of strings: ["Topic 1", "Topic 2", "Topic 3"]
         return JSON.parse(match[0]);
       }
     } catch (error) {
-      console.warn('[Gemini] Failed to generate followups:', error);
-    }
+          }
 
     return [
       `${topic} - Advanced Concepts`,
@@ -667,8 +653,7 @@ Return only a JSON array of strings: ["Topic 1", "Topic 2", "Topic 3"]
         return JSON.parse(match[0]);
       }
     } catch (error) {
-      console.warn('[Gemini] Failed to parse micro lessons:', error);
-    }
+          }
 
     return [
       { title: 'Introduction', description: 'Basic concepts', order: 1 },
@@ -684,8 +669,7 @@ Return only a JSON array of strings: ["Topic 1", "Topic 2", "Topic 3"]
         return { questions: JSON.parse(match[0]) };
       }
     } catch (error) {
-      console.warn('[Gemini] Failed to parse quiz:', error);
-    }
+          }
 
     return { questions: [] };
   }
@@ -697,8 +681,7 @@ Return only a JSON array of strings: ["Topic 1", "Topic 2", "Topic 3"]
         return JSON.parse(match[0]);
       }
     } catch (error) {
-      console.warn('[Gemini] Failed to parse learning path:', error);
-    }
+          }
 
     return {
       weeks: [
@@ -856,3 +839,5 @@ export function getGeminiLessonService(): GeminiLessonService {
 }
 
 export { GeminiLessonService };
+
+

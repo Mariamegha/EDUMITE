@@ -39,7 +39,7 @@ function loadCacheFromStorage() {
       });
     }
   } catch (error) {
-    console.warn('Failed to load translation cache:', error);
+
   }
 }
 
@@ -52,7 +52,7 @@ function saveCacheToStorage() {
     });
     localStorage.setItem('translationCache', JSON.stringify(cacheObj));
   } catch (error) {
-    console.warn('Failed to save translation cache:', error);
+
   }
 }
 
@@ -324,7 +324,7 @@ export function clearTranslationCache() {
   try {
     localStorage.removeItem('translationCache');
   } catch (error) {
-    console.warn('Failed to clear translation cache from storage:', error);
+
   }
 }
 
@@ -377,4 +377,5 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'el', name: 'Greek' },
   { code: 'hu', name: 'Hungarian' },
 ];
+
 

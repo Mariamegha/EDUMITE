@@ -390,8 +390,7 @@ export async function getExternalCourses(source?: 'udemy' | 'coursera') {
     const url = source 
       ? `${apiUrl}/courses/external?source=${source}`
       : `${apiUrl}/courses/external`;
-    
-    console.log('Fetching external courses from:', url);
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -406,7 +405,7 @@ export async function getExternalCourses(source?: 'udemy' | 'coursera') {
     }
     
     const data = await response.json();
-    console.log('Received courses:', data);
+
     return { courses: data.courses as ExternalCourse[], error: null };
   } catch (error: any) {
     console.error('Error fetching external courses:', error);
@@ -417,4 +416,6 @@ export async function getExternalCourses(source?: 'udemy' | 'coursera') {
     };
   }
 }
+
+
 

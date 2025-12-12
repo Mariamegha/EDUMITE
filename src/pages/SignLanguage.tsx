@@ -16,6 +16,7 @@ import {
   Play,
   Settings,
   Download,
+  Languages,
 } from 'lucide-react';
 import type {
   SignLanguageType,
@@ -108,12 +109,20 @@ export default function SignLanguage() {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-rose-500 bg-clip-text text-transparent">
               Sign Language
             </h1>
-            <button
-              onClick={() => navigate('/sign-language/settings')}
-              className="p-2 rounded-xl bg-neutral-800/50 text-neutral-300 active:scale-95 transition"
-            >
-              <Settings size={20} />
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => navigate('/sign-language/translator')}
+                className="p-2 rounded-xl bg-neutral-800/50 text-neutral-300 active:scale-95 transition"
+              >
+                <Languages size={20} />
+              </button>
+              <button
+                onClick={() => navigate('/sign-language/settings')}
+                className="p-2 rounded-xl bg-neutral-800/50 text-neutral-300 active:scale-95 transition"
+              >
+                <Settings size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Mission statement */}
@@ -249,6 +258,23 @@ export default function SignLanguage() {
       {/* Features */}
       <div className="max-w-md mx-auto px-6 py-8">
         <div className="grid grid-cols-1 gap-4">
+          <button
+            onClick={() => navigate('/sign-language/translator')}
+            className="p-5 bg-gradient-to-br from-purple-900/20 to-transparent border border-purple-900/30 rounded-2xl text-left hover:bg-purple-900/30 active:scale-95 transition"
+          >
+            <div className="flex items-start">
+              <div className="p-2 bg-purple-900/30 rounded-lg mr-4">
+                <Languages size={20} className="text-purple-400" />
+              </div>
+              <div>
+                <h3 className="font-medium text-white mb-1">Text to Sign Translator</h3>
+                <p className="text-sm text-neutral-400">
+                  Convert any text to sign language with 3D avatars
+                </p>
+              </div>
+            </div>
+          </button>
+
           <div className="p-5 bg-gradient-to-br from-amber-900/20 to-transparent border border-amber-900/30 rounded-2xl">
             <div className="flex items-start">
               <div className="p-2 bg-amber-900/30 rounded-lg mr-4">

@@ -422,7 +422,7 @@ export const useSoundPlayer = (): UseSoundPlayerReturn => {
             setUseFallback(false);
             break;
           } catch (error) {
-            console.warn(error);
+
             continue;
           }
         }
@@ -506,3 +506,4 @@ export const useSoundPlayer = (): UseSoundPlayerReturn => {
     frequencyData,
   };
 };
+

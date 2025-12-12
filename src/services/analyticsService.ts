@@ -161,7 +161,7 @@ export async function getAnalyticsData(): Promise<AnalyticsData> {
       isFallback: isStillFallback,
     };
   } catch (error) {
-    console.warn('Falling back to sample analytics data:', error);
+
     return getFallbackAnalytics();
   }
 }
@@ -378,3 +378,4 @@ function getFallbackSubjects(): SubjectPerformance[] {
     { name: 'Algorithms', score: 65, colorClass: SUBJECT_COLORS[3] },
   ];
 }
+

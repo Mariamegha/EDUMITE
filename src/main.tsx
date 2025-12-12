@@ -8,43 +8,27 @@ import "./index.css";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // ============================================================
-// INITIALIZATION LOGGING - AFTER IMPORTS
+// APPLICATION INITIALIZATION
 // ============================================================
-console.log("🚀 EDUMITE: Starting application...");
-console.log("📦 React version:", React.version);
-console.log("🌐 Environment:", import.meta.env.MODE);
-
 try {
   const rootElement = document.getElementById("root");
   if (!rootElement) {
     throw new Error("Root element #root not found in DOM");
   }
   
-  console.log("✅ EDUMITE: Root element found");
-  console.log("🎨 EDUMITE: Rendering application...");
-  
   const root = createRoot(rootElement);
   root.render(
     <ErrorBoundary 
       onError={(error, errorInfo) => {
-        console.error("❌ EDUMITE: ErrorBoundary caught error:", error);
-        console.error("📋 Error Info:", errorInfo);
+        console.error("Application error:", error);
       }}
     >
       <App />
     </ErrorBoundary>
   );
   
-  console.log("✅ EDUMITE: App render initiated successfully");
-  
-  // Log when React finishes mounting
-  setTimeout(() => {
-    console.log("✅ EDUMITE: Application should be visible now");
-  }, 100);
-  
 } catch (error) {
-  console.error("💥 EDUMITE: FATAL - Failed to initialize application:", error);
-  console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace");
+  console.error("Failed to initialize application:", error);
   
   // Show user-friendly error in the DOM
   document.body.innerHTML = `

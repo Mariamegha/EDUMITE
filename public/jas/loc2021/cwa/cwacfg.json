@@ -1,7 +1,7 @@
 {
   "description"     : "========  CWASA installation configuration data : Development release ========",
 
-  "jasBase"         : "http://localhost/jas/loc2021/",
+  "jasBase"         : "/jas/loc2021/",
   "jasVersionTag"   : "loc2021",
 
   "sigmlBase"       : "sigml",

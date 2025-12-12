@@ -4,7 +4,7 @@ const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const modelName = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash';
 
 if (!apiKey) {
-  console.warn('Gemini API key not configured. Please set VITE_GEMINI_API_KEY in your .env file');
+
 }
 
 const ai = new GoogleGenAI({
@@ -534,4 +534,5 @@ Return ONLY JSON shaped as:
     throw new Error('Failed to generate course plan. Please try again.');
   }
 }
+
 
