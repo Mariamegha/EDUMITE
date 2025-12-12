@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { TranslationProvider } from "@/components/TranslationProvider";
 import NavbarGold from "@/components/NavbarGold";
 import DockNav from "@/components/DockNav";
+import ClusterScreen from "@/components/ClusterScreen";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AccessibilityFab } from "@/components/accessibility/AccessibilityFab";
 import { CaptionBar } from "@/components/accessibility/CaptionBar";
@@ -16,11 +17,12 @@ import { useUserStore } from "@/store/userStore";
 import { initializeAuth } from "@/services/authService";
 import { supabase } from "@/lib/supabase";
 import { Suspense } from "react";
+import { NAVIGATION_CLUSTERS } from "@/config/navigationClusters";
+import { useNavigationStore } from "@/store/navigationStore";
 
 import LandingGold from "./pages/LandingGold";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Onboarding from "./pages/Onboarding";
 import DashboardGold from "./pages/DashboardGold";
 import AIBot from "./pages/AIBot";
 import Roadmap from "./pages/Roadmap";
@@ -185,10 +187,38 @@ function AuthListener() {
   return null;
 }
 
+function ClusterRouteHandler() {
+  const location = useLocation();
+  const clusterId = location.pathname.split('/')[2]; // Extract clusterId from /cluster/:clusterId
+  
+  const setActiveCluster = useNavigationStore((state) => state.setActiveCluster);
+  const setIsInCluster = useNavigationStore((state) => state.setIsInCluster);
+  
+  useEffect(() => {
+    if (clusterId) {
+      setActiveCluster(clusterId as any);
+      setIsInCluster(true);
+    }
+    return () => {
+      setActiveCluster(null);
+      setIsInCluster(false);
+    };
+  }, [clusterId, setActiveCluster, setIsInCluster]);
+  
+  const cluster = NAVIGATION_CLUSTERS[clusterId as keyof typeof NAVIGATION_CLUSTERS];
+  
+  if (!cluster) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <ClusterScreen cluster={cluster} />;
+}
+
 function ConditionalLayout() {
   const location = useLocation();
-  const hideNavbar = ['/', '/login', '/register', '/onboarding'].includes(location.pathname) ||
-    location.pathname.startsWith('/unified-os');
+  const hideNavbar = ['/', '/login', '/register'].includes(location.pathname) ||
+    location.pathname.startsWith('/unified-os') ||
+    location.pathname.startsWith('/cluster');
 
   return (
     <div className="flex min-h-screen flex-col bg-deepblack">
@@ -198,7 +228,19 @@ function ConditionalLayout() {
           <Route path="/" element={<LandingGold />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/onboarding" element={<Onboarding />} />
+          
+          {/* Cluster Routes */}
+          <Route
+            path="/cluster/:clusterId"
+            element={
+              <ErrorBoundary>
+                <ProtectedRoute>
+                  <ClusterRouteHandler />
+                </ProtectedRoute>
+              </ErrorBoundary>
+            }
+          />
+          
           <Route
                     path="/dashboard"
                     element={

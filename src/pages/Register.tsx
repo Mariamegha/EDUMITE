@@ -49,7 +49,7 @@ export default function Register() {
         title: 'Account created!',
         description: 'Welcome to Edumite! Let\'s get you started.',
       });
-      navigate('/onboarding');
+      navigate('/dashboard');
     }
     setIsLoading(false);
   };

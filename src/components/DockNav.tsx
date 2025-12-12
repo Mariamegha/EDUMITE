@@ -1,64 +1,27 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { 
-  Home, 
-  Bot, 
-  Map, 
-  BookOpen, 
-  StickyNote, 
-  Focus, 
-  Calendar, 
-  Glasses, 
-  Users, 
-  BarChart3,
-  Settings,
-  LayoutGrid,
-  Trophy,
-  Target,
-  Heart,
-  Award,
-  Gamepad2,
-  Hand,
-  Lock,
-  Unlock,
-  Sparkles
-} from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
+import { Lock, Unlock } from 'lucide-react';
 import './DockNav.css';
+import { NAVIGATION_CLUSTERS, getClusterByHref } from '@/config/navigationClusters';
+import { useNavigationStore } from '@/store/navigationStore';
+import { ClusterType } from '@/types/navigation';
 
 interface DockItem {
   icon: React.ReactNode;
   label: string;
   href: string;
+  clusterId?: ClusterType;
 }
-
-const dockItems: DockItem[] = [
-  { icon: <Home size={24} />, label: 'Dashboard', href: '/dashboard' },
-  { icon: <Sparkles size={24} />, label: 'Unified OS', href: '/unified-os' },
-  { icon: <Bot size={24} />, label: 'AI Bot', href: '/ai-bot' },
-  { icon: <Map size={24} />, label: 'Roadmap', href: '/roadmap' },
-  { icon: <BookOpen size={24} />, label: 'Courses', href: '/courses' },
-  { icon: <LayoutGrid size={24} />, label: 'Workspace', href: '/workspace' },
-  { icon: <StickyNote size={24} />, label: 'Notes', href: '/notes' },
-  { icon: <Focus size={24} />, label: 'Focus Room', href: '/focus-room' },
-  { icon: <Calendar size={24} />, label: 'Study Planner', href: '/study-planner' },
-  { icon: <Trophy size={24} />, label: 'Performance', href: '/performance-tiers' },
-  { icon: <Target size={24} />, label: 'Opportunities', href: '/smart-opportunities' },
-  { icon: <Heart size={24} />, label: 'Wellness', href: '/wellness' },
-  { icon: <Award size={24} />, label: 'Schemes', href: '/schemes' },
-  { icon: <Hand size={24} />, label: 'Sign Language', href: '/sign-language' },
-  { icon: <Gamepad2 size={24} />, label: 'Game Center', href: '/game' },
-  { icon: <Glasses size={24} />, label: 'Study VR', href: '/study-vr' },
-  { icon: <Users size={24} />, label: 'Community', href: '/community' },
-  { icon: <BarChart3 size={24} />, label: 'Analytics', href: '/analytics' },
-  { icon: <Settings size={24} />, label: 'Settings', href: '/settings' },
-];
 
 function DockIcon({ item, mouseX }: { item: DockItem; mouseX: any }) {
   const ref = useRef<HTMLButtonElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
+  const setActiveCluster = useNavigationStore((state) => state.setActiveCluster);
+  const setIsInCluster = useNavigationStore((state) => state.setIsInCluster);
 
   const distance = useTransform(mouseX, (val: number) => {
     const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 };
@@ -70,6 +33,23 @@ function DockIcon({ item, mouseX }: { item: DockItem; mouseX: any }) {
 
   const isActive = location.pathname === item.href;
 
+  const handleClick = () => {
+    if (item.clusterId) {
+      const cluster = NAVIGATION_CLUSTERS[item.clusterId];
+      if (!cluster.isPermanent) {
+        // Navigate to cluster screen
+        setActiveCluster(item.clusterId);
+        setIsInCluster(true);
+        navigate(`/cluster/${item.clusterId}`);
+      } else {
+        // Direct navigation for permanent items
+        navigate(item.href);
+      }
+    } else {
+      navigate(item.href);
+    }
+  };
+
   return (
     <motion.button
       ref={ref}
@@ -77,7 +57,7 @@ function DockIcon({ item, mouseX }: { item: DockItem; mouseX: any }) {
       className={`dock-item ${isActive ? 'dock-item-active' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={() => navigate(item.href)}
+      onClick={handleClick}
     >
       <div className="dock-icon" style={{ color: isActive ? '#FFD700' : '#FF1493' }}>
         {item.icon}
@@ -101,6 +81,89 @@ export default function DockNav() {
   const [isVisible, setIsVisible] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const activeCluster = useNavigationStore((state) => state.activeCluster);
+  const isInCluster = useNavigationStore((state) => state.isInCluster);
+
+  // Determine which items to show
+  const [dockItems, setDockItems] = useState<DockItem[]>([]);
+
+  useEffect(() => {
+    // Check if we're on a cluster screen or a page within a cluster
+    const currentCluster = getClusterByHref(location.pathname);
+    
+    if (activeCluster && NAVIGATION_CLUSTERS[activeCluster]) {
+      // Show cluster sub-items
+      const cluster = NAVIGATION_CLUSTERS[activeCluster];
+      const items: DockItem[] = cluster.items.map(item => {
+        const IconComponent = (LucideIcons as any)[item.icon];
+        return {
+          icon: IconComponent ? <IconComponent size={24} /> : null,
+          label: item.label,
+          href: item.href,
+        };
+      });
+      setDockItems(items);
+    } else if (currentCluster && !currentCluster.isPermanent) {
+      // We're on a page that belongs to a cluster, show that cluster's items
+      const items: DockItem[] = currentCluster.items.map(item => {
+        const IconComponent = (LucideIcons as any)[item.icon];
+        return {
+          icon: IconComponent ? <IconComponent size={24} /> : null,
+          label: item.label,
+          href: item.href,
+        };
+      });
+      setDockItems(items);
+    } else {
+      // Show top-level cluster navigation
+      const topLevelItems: DockItem[] = [
+        {
+          icon: <LucideIcons.Home size={24} />,
+          label: 'Dashboard',
+          href: '/dashboard',
+        },
+        {
+          icon: <LucideIcons.GraduationCap size={24} />,
+          label: 'Learning Tools',
+          href: '/cluster/learning-tools',
+          clusterId: 'learning-tools',
+        },
+        {
+          icon: <LucideIcons.Hand size={24} />,
+          label: 'Sign Language',
+          href: '/sign-language',
+          clusterId: 'sign-language',
+        },
+        {
+          icon: <LucideIcons.Sparkles size={24} />,
+          label: 'Visualization',
+          href: '/cluster/visualization-tools',
+          clusterId: 'visualization-tools',
+        },
+        {
+          icon: <LucideIcons.Heart size={24} />,
+          label: 'Support',
+          href: '/cluster/supportive-tools',
+          clusterId: 'supportive-tools',
+        },
+        {
+          icon: <LucideIcons.Sparkles size={24} />,
+          label: 'Unified OS',
+          href: '/unified-os',
+          clusterId: 'unified-os',
+        },
+        {
+          icon: <LucideIcons.Settings size={24} />,
+          label: 'Settings',
+          href: '/settings',
+        },
+      ];
+      setDockItems(topLevelItems);
+    }
+  }, [location.pathname, activeCluster]);
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -125,6 +188,7 @@ export default function DockNav() {
       setIsVisible(true);
     }
   };
+
 
   return (
     <>
@@ -161,6 +225,8 @@ export default function DockNav() {
           onMouseMove={(e) => mouseX.set(e.pageX)}
           onMouseLeave={() => mouseX.set(Infinity)}
           className="dock-panel relative"
+          layout
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         >
           {/* Lock button on dock */}
           <motion.button
