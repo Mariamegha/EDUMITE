@@ -21,7 +21,8 @@ import {
   Gamepad2,
   Hand,
   Lock,
-  Unlock
+  Unlock,
+  Sparkles
 } from 'lucide-react';
 import './DockNav.css';
 
@@ -33,6 +34,7 @@ interface DockItem {
 
 const dockItems: DockItem[] = [
   { icon: <Home size={24} />, label: 'Dashboard', href: '/dashboard' },
+  { icon: <Sparkles size={24} />, label: 'Unified OS', href: '/unified-os' },
   { icon: <Bot size={24} />, label: 'AI Bot', href: '/ai-bot' },
   { icon: <Map size={24} />, label: 'Roadmap', href: '/roadmap' },
   { icon: <BookOpen size={24} />, label: 'Courses', href: '/courses' },

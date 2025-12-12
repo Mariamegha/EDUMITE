@@ -50,6 +50,9 @@ import SignLanguage from "./pages/SignLanguage";
 import SignLanguageSetup from "./pages/SignLanguageSetup";
 import SignLanguageLesson from "./pages/SignLanguageLesson";
 import SignLanguageTranslator from "./pages/SignLanguageTranslator";
+import UnifiedOS from "./pages/UnifiedOS";
+import CreateSpace from "./pages/CreateSpace";
+import WorkspaceLayout from "./pages/WorkspaceLayout";
 
 const queryClient = new QueryClient();
 
@@ -184,7 +187,8 @@ function AuthListener() {
 
 function ConditionalLayout() {
   const location = useLocation();
-  const hideNavbar = ['/', '/login', '/register', '/onboarding'].includes(location.pathname);
+  const hideNavbar = ['/', '/login', '/register', '/onboarding'].includes(location.pathname) ||
+    location.pathname.startsWith('/unified-os');
 
   return (
     <div className="flex min-h-screen flex-col bg-deepblack">
@@ -471,6 +475,36 @@ function ConditionalLayout() {
                       <ErrorBoundary>
                         <ProtectedRoute>
                           <Schemes />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/unified-os"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <UnifiedOS />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/unified-os/create"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <CreateSpace />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/unified-os/workspace/:spaceId"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <WorkspaceLayout />
                         </ProtectedRoute>
                       </ErrorBoundary>
                     }
