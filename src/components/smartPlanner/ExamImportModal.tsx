@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Upload, Calendar, Plus } from 'lucide-react';
+import { X, Upload, Calendar, Plus, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { examNotificationService } from '@/services/examNotificationService';
+import type { CreateExamPayload } from '@/types/examNotifications';
+import { useToast } from '@/hooks/use-toast';
 
 interface ExamImportModalProps {
   isOpen: boolean;
@@ -15,6 +18,8 @@ export default function ExamImportModal({ isOpen, onClose, onImport }: ExamImpor
   const [manualExams, setManualExams] = useState([
     { subject: '', date: '', time: '' }
   ]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
   if (!isOpen) return null;
 
@@ -26,10 +31,62 @@ export default function ExamImportModal({ isOpen, onClose, onImport }: ExamImpor
     setManualExams(manualExams.filter((_, i) => i !== index));
   };
 
-  const handleImport = () => {
-    // In real implementation, this would save the exams
-    onImport();
-    onClose();
+  const handleImport = async () => {
+    // Validate exams
+    const validExams = manualExams.filter(exam => exam.subject && exam.date);
+    
+    if (validExams.length === 0) {
+      toast({
+        title: "No valid exams",
+        description: "Please enter at least one exam with subject and date",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Convert to API payload format
+      const examPayloads: CreateExamPayload[] = validExams.map(exam => ({
+        exam_name: exam.subject,
+        exam_date: exam.date,
+        exam_time: exam.time || undefined,
+        subject: exam.subject,
+        importance: 'medium',
+        color: '#C9B458',
+      }));
+
+      // Save to database
+      const createdExams = await examNotificationService.createExamsBulk(examPayloads);
+
+      if (createdExams.length > 0) {
+        toast({
+          title: "✅ Exams imported successfully!",
+          description: `${createdExams.length} exam(s) added to your schedule`,
+        });
+
+        // Call parent onImport callback
+        onImport();
+        
+        // Reset form
+        setManualExams([{ subject: '', date: '', time: '' }]);
+        
+        // Close modal
+        onClose();
+      } else {
+        throw new Error('Failed to create exams');
+      }
+    } catch (error) {
+      console.error('[ExamImportModal] Error importing exams:', error);
+      toast({
+        title: "Import failed",
+        description: "Failed to save exams. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -152,22 +209,38 @@ export default function ExamImportModal({ isOpen, onClose, onImport }: ExamImpor
 
         {/* Footer */}
         <div className="p-6 border-t border-white/10 bg-white/5 flex items-center justify-between">
-          <p className="text-sm text-gray-400">
-            Using mock data for demonstration
+          <p className="text-sm text-gray-400 flex items-center gap-2">
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving exams...
+              </>
+            ) : (
+              "Enter your exam schedule to enable countdown notifications"
+            )}
           </p>
           <div className="flex items-center gap-3">
             <Button
               onClick={onClose}
               variant="outline"
               className="border-white/10 hover:bg-white/5"
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button
               onClick={handleImport}
+              disabled={isSubmitting}
               className="bg-gradient-to-r from-[#C9B458] to-[#C27BA0] hover:opacity-90 text-white font-semibold"
             >
-              Import & Generate Plan
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                'Import & Generate Plan'
+              )}
             </Button>
           </div>
         </div>

@@ -10,7 +10,9 @@ import {
   Sparkles,
   LayoutGrid,
   TrendingUp,
-  Target
+  Target,
+  Clock,
+  AlertCircle
 } from 'lucide-react';
 // TODO [Phase 35]: Integrate AI-powered study plan generation
 // import { useAIContext } from '@/hooks/useAIContext';
@@ -23,6 +25,7 @@ import StudyClusterView from '@/components/smartPlanner/StudyClusterView';
 import WorkloadHeatmap from '@/components/smartPlanner/WorkloadHeatmap';
 import ExamImportModal from '@/components/smartPlanner/ExamImportModal';
 import MicroDeadlineCard from '@/components/smartPlanner/MicroDeadlineCard';
+import { useExamCountdown } from '@/hooks/useExamCountdown';
 import {
   getMockExamTimetable,
   getMockDailyStudyPlans,
@@ -34,6 +37,8 @@ export default function StudyPlanner() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [hasImportedExams, setHasImportedExams] = useState(true); // Set to true to show mock data
+  
+  const { upcomingExams, allCountdowns, nearestExam, hasExamToday, hasExamTomorrow } = useExamCountdown();
   
   const exams = getMockExamTimetable();
   const dailyPlans = getMockDailyStudyPlans();
@@ -160,6 +165,82 @@ export default function StudyPlanner() {
 
             {/* Calendar View */}
             <TabsContent value="calendar" className="space-y-6">
+              {/* Exam Countdown Banner */}
+              {upcomingExams.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-r from-[#C9B458]/20 via-[#C27BA0]/20 to-[#C9B458]/20 backdrop-blur-xl rounded-2xl p-6 border-2 border-[#C9B458]/30"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-gradient-to-br from-[#C9B458] to-[#C27BA0] rounded-xl">
+                      <AlertCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-[#C9B458]" />
+                        Upcoming Exams - Next 7 Days
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {upcomingExams.map((countdown, index) => {
+                          const getUrgencyColor = () => {
+                            if (countdown.urgencyLevel === 'critical') return 'from-red-500/20 to-red-600/20 border-red-500';
+                            if (countdown.urgencyLevel === 'urgent') return 'from-orange-500/20 to-orange-600/20 border-orange-500';
+                            if (countdown.urgencyLevel === 'moderate') return 'from-yellow-500/20 to-yellow-600/20 border-yellow-500';
+                            return 'from-[#C9B458]/20 to-[#C27BA0]/20 border-[#C9B458]';
+                          };
+
+                          const getBadgeColor = () => {
+                            if (countdown.urgencyLevel === 'critical') return 'bg-red-500';
+                            if (countdown.urgencyLevel === 'urgent') return 'bg-orange-500';
+                            if (countdown.urgencyLevel === 'moderate') return 'bg-yellow-500';
+                            return 'bg-[#C9B458]';
+                          };
+
+                          return (
+                            <motion.div
+                              key={countdown.exam.id}
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: index * 0.1 }}
+                              className={`bg-gradient-to-br ${getUrgencyColor()} backdrop-blur-sm rounded-xl p-4 border-2`}
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <h4 className="font-bold text-white text-sm mb-1">
+                                    {countdown.exam.exam_name}
+                                  </h4>
+                                  {countdown.exam.subject && (
+                                    <p className="text-xs text-white/70">{countdown.exam.subject}</p>
+                                  )}
+                                </div>
+                                <div className={`${getBadgeColor()} ${countdown.urgencyLevel === 'critical' ? 'animate-pulse' : ''} px-2 py-1 rounded-lg`}>
+                                  <span className="text-white font-black text-lg">
+                                    {countdown.daysLeft}
+                                  </span>
+                                  <span className="text-white text-xs ml-1">
+                                    {countdown.daysLeft === 1 ? 'day' : 'days'}
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-white/90 text-xs font-medium">{countdown.message}</p>
+                              <div className="mt-2 text-xs text-white/60">
+                                📅 {new Date(countdown.exam.exam_date).toLocaleDateString('en-US', { 
+                                  weekday: 'short', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}
+                                {countdown.exam.exam_time && ` • ⏰ ${countdown.exam.exam_time}`}
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                   <ExamCalendar

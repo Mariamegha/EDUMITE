@@ -69,6 +69,15 @@
 - **Practice Mode** - Compare your signing with avatar demonstrations
 - **Multi-Language Support** - ASL, ISL, BSL with word translations
 
+#### 📅 **Smart Exam Management**
+- **Global Countdown Notifications** - Bell icon on all pages with exam alerts
+- **Automatic Daily Updates** - Midnight refresh recalculates days remaining
+- **Calendar Integration** - Exam dates visually marked with colored borders
+- **Urgency-Based Alerts** - Color-coded badges (Red/Orange/Yellow/Gold)
+- **Dashboard Widget** - Large countdown card for nearest exam
+- **Study Planner Banner** - Upcoming exams grid (next 7 days)
+- **Real-time Sync** - Supabase subscriptions for instant updates
+
 #### 🎮 **Gamified Learning Hub**
 - **Competitive Matches** - Real-time multiplayer quiz battles
 - **XP & Level System** - Earn points, climb tiers (Bronze → Diamond)
@@ -102,7 +111,7 @@
 
 ### 💡 **Why EDUMITE Stands Out**
 
-**30+ Integrated Features** - Built by **SYLESH PAVENDAN** to solve real educational challenges:
+**35+ Integrated Features** - Built by **SYLESH PAVENDAN** to solve real educational challenges:
 
 ✅ **AI-First**: Gemini Pro powers every feature - tutoring, content generation, assessments  
 ✅ **Inclusive**: Sign language + accessibility features serve 100% of learners  
@@ -115,9 +124,62 @@
 
 ---
 
-## ✨ **Complete Feature Breakdown** (30+ Systems)
+## ✨ **Complete Feature Breakdown** (35+ Systems)
 
-### 🎓 **1. AI-Powered Learning Engine**
+### 📅 **1. Exam Countdown Notification System**
+
+#### 🔔 **Global Notification Bell** (`/navbar` - All Pages)
+- **Persistent Icon** - Visible on every authenticated page
+- **Badge Counter** - Shows number of upcoming exams
+- **Urgency Colors** - Red (today), Orange (tomorrow), Yellow (≤3 days), Gold (normal)
+- **Pulse Animation** - Critical exams (0-1 days) have animated badge
+- **Dropdown Menu** - Click to see all upcoming exams with countdowns
+- **Smart Hiding** - Auto-hides when no exams scheduled
+- **File Locations**: `src/components/ExamNotificationBell.tsx`, `src/hooks/useExamCountdown.ts`
+
+#### 📊 **Dashboard Countdown Widget** (`/dashboard`)
+- **Large Card Display** - Prominent widget showing nearest exam
+- **Days Left Badge** - Big counter with urgency-based gradient background
+- **Exam Details** - Name, subject, date, time, location
+- **Empty State** - "Add Exams" CTA when no upcoming exams
+- **Link to Planner** - Quick navigation to Study Planner
+- **File Locations**: `src/components/ExamCountdownWidget.tsx`
+
+#### 🗓️ **Calendar Date Markers** (`/study-planner`)
+- **Visual Indicators** - Colored borders on exam dates
+- **Pulsing Dots** - Animated indicators in calendar cells
+- **Glowing Effect** - Box shadow matching subject color
+- **Database Integration** - Merges Supabase exams with mock data
+- **Real-time Updates** - Calendar refreshes when exams added/edited
+- **Legend Display** - Shows all exam subjects with color codes
+- **File Locations**: `src/components/smartPlanner/ExamCalendar.tsx`
+
+#### ⚡ **Upcoming Exams Banner** (`/study-planner`)
+- **7-Day Preview** - Shows all exams in next week
+- **Responsive Grid** - 1/2/3 columns based on screen size
+- **Urgency Badges** - Day counter with color coding
+- **Context Messages** - "Your JEE exam is today. All the best! 🎯"
+- **Date/Time Display** - Formatted exam schedule
+- **Auto-Hide** - Only appears when exams exist
+- **File Locations**: `src/pages/StudyPlanner.tsx`
+
+#### 🔄 **Automatic Daily Refresh**
+- **Midnight Recalculation** - Countdown updates at 12:00 AM
+- **Timezone-Aware** - Uses local timezone for calculations
+- **Supabase Subscriptions** - Real-time updates via WebSocket
+- **Single Source of Truth** - `useExamCountdown` hook powers all displays
+- **Performance Optimized** - Minimal re-renders with memoization
+- **File Locations**: `src/hooks/useExamCountdown.ts`, `src/services/examNotificationService.ts`
+
+#### 💾 **Database Schema** (`supabase/migrations/`)
+- **exam_schedules Table** - PostgreSQL with RLS policies
+- **User Isolation** - Row-level security (users see only their exams)
+- **Auto-Timestamps** - created_at, updated_at with triggers
+- **Past Exam Cleanup** - Function to archive old exams
+- **Indexed Queries** - Fast lookups on user_id + exam_date
+- **File Locations**: `supabase/migrations/001_exam_notifications.sql`, `src/types/examNotifications.ts`
+
+### 🎓 **2. AI-Powered Learning Engine**
 
 #### 🤖 **Gemini AI Tutor** (`/ai-bot`)
 - **Multi-Turn Conversations** - Context-aware chat with memory
@@ -150,7 +212,7 @@
 - **Smart Reminders** - Push notifications (if enabled)
 - **File Locations**: `src/pages/StudyPlanner.tsx`, `src/services/classroomService.ts`
 
-### 🤟 **2. Sign Language Learning System**
+### 🤟 **3. Sign Language Learning System**
 
 #### 🎭 **CWASA 3D Avatar Player** (`/sign-language/lesson`)
 - **850+ ISL Signs** - Complete shoebham/text_to_isl dataset
@@ -176,7 +238,7 @@
 - **Quiz Generation** - AI-created assessment questions
 - **File Locations**: `src/pages/SignLanguageSetup.tsx`, `src/services/geminiLesson.ts`
 
-### 🎮 **3. Gamified Learning Hub**
+### 🎮 **4. Gamified Learning Hub**
 
 #### 🏆 **Game Center** (`/game`)
 - **Practice Mode** - Solo quiz with energy system (50 base, +6 correct, -2 wrong)
@@ -201,7 +263,7 @@
 - **Display Cards** - Animated badge grid on dashboard
 - **File Locations**: `src/mocks/gameHub.ts` (MOCK_PLAYER_PROFILE.badges)
 
-### 🎨 **4. Immersive 3D Visual Effects**
+### 🎨 **5. Immersive 3D Visual Effects**
 
 #### 🌌 **GridScan Background** (`/dashboard`)
 - **WebGL Rendering** - Three.js + React Three Fiber
@@ -223,7 +285,7 @@
 - **Smooth Animation** - Framer Motion + Spring physics
 - **File Locations**: `src/components/3D/GridDistortion.tsx`
 
-### 📝 **5. Productivity & Study Tools**
+### 📝 **6. Productivity & Study Tools**
 
 #### 📓 **Notes Workspace** (`/notes`)
 - **PDF Upload** - Drag-and-drop file support (Supabase Storage)
@@ -249,7 +311,7 @@
 - **Error Display** - Compile/runtime errors shown inline
 - **File Locations**: `src/components/IDE.tsx`, `src/pages/Workspace.tsx`
 
-### 🌍 **6. Accessibility & Inclusion**
+### 🌍 **7. Accessibility & Inclusion**
 
 #### ♿ **Visual Accessibility**
 - **Dyslexia Font** - OpenDyslexic via CDN
@@ -272,7 +334,7 @@
 - **Demo Mode** - Mock translations for testing
 - **File Locations**: `src/components/accessibility/SignAvatar.tsx`, `src/components/accessibility/CaptionBar.tsx`
 
-### 📊 **7. Analytics & Performance**
+### 📊 **8. Analytics & Performance**
 
 #### 📈 **Analytics Dashboard** (`/analytics`)
 - **Study Hours** - Weekly/monthly time tracking
@@ -296,7 +358,7 @@
 - **External Links** - Direct apply buttons
 - **File Locations**: `src/pages/SmartOpportunities.tsx`
 
-### 🤝 **8. Community & Collaboration**
+### 🤝 **9. Community & Collaboration**
 
 #### 💬 **Discussion Forums** (`/community`)
 - **Course Threads** - Topic-specific conversations
@@ -319,7 +381,7 @@
 - **Spatial Audio** - 3D positional sound
 - **File Locations**: `src/pages/StudyVR.tsx`
 
-### 🎨 **9. Eye-Friendly Design System**
+### 🎨 **10. Eye-Friendly Design System**
 
 #### 🎨 **Color Palette** (Tested for 6-10 Hour Sessions)
 ```css
@@ -345,7 +407,7 @@
 - **High Contrast Icons** - Lucide React library
 - **Uppercase Labels** - Font-weight 900 (Black)
 
-### 🔐 **10. Security & Authentication**
+### 🔐 **11. Security & Authentication**
 
 #### 🔒 **Supabase Authentication**
 - **Email/Password** - Standard registration flow
@@ -368,7 +430,7 @@ CREATE POLICY "Courses auth insert" ON courses
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 ```
 
-### 🧪 **11. Advanced Features**
+### 🧪 **12. Advanced Features**
 
 #### 🧘 **Wellness & Mental Health** (`/wellness`)
 - **Mood Tracking** - Daily emotional check-ins
@@ -622,6 +684,7 @@ Output as JSON:
 🔄  @tanstack/react-query 5.62 - Server state sync + caching
 📋  React Hook Form 7.54.2     - Performant form handling with validation
 ✅  Zod 3.24.1                  - TypeScript-first schema validation
+⏰  Custom React Hooks         - useExamCountdown for global exam state
 ```
 
 #### **Backend & Database**
@@ -781,7 +844,9 @@ edumite/
 │   │   │   ├── button.tsx, card.tsx, dialog.tsx, form.tsx...
 │   │   │
 │   │   ├── DockNav.tsx           # macOS-style navigation dock
-│   │   ├── NavbarGold.tsx        # Top navigation bar
+│   │   ├── NavbarGold.tsx        # Top navigation bar (with ExamNotificationBell)
+│   │   ├── ExamNotificationBell.tsx # Global exam countdown notification
+│   │   ├── ExamCountdownWidget.tsx  # Dashboard exam countdown card
 │   │   ├── BentoCards.tsx        # Dashboard feature cards
 │   │   ├── IDE.tsx               # Monaco + Judge0 code editor
 │   │   ├── MentorChat.tsx        # AI mentor interface
@@ -817,12 +882,14 @@ edumite/
 │   │   ├── classroomService.ts   # Google Classroom OAuth
 │   │   ├── translateService.ts   # RapidAPI translation
 │   │   ├── userService.ts        # User profile management
-│   │   └── leaderboardService.ts # Gamification
+│   │   ├── leaderboardService.ts # Gamification
+│   │   └── examNotificationService.ts # Exam countdown CRUD + real-time
 │   │
 │   ├── 🪝 hooks/                 # Custom React hooks
 │   │   ├── useTranslation.ts     # Multi-language support
 │   │   ├── useSoundPlayer.ts     # Ambient audio player
 │   │   ├── useGoogleClassroom.ts # Classroom integration
+│   │   ├── useExamCountdown.ts   # Exam countdown logic (single source of truth)
 │   │   └── use-toast.ts          # Toast notifications
 │   │
 │   ├── 📚 lib/                   # Core utilities
@@ -836,7 +903,8 @@ edumite/
 │   │   └── themeStore.ts         # Theme + accessibility
 │   │
 │   ├── 📦 types/                 # TypeScript definitions
-│   │   └── classroom.ts          # Google Classroom types
+│   │   ├── classroom.ts          # Google Classroom types
+│   │   └── examNotifications.ts  # Exam schedule types + interfaces
 │   │
 │   └── 🛠️ utils/
 │       └── generateSchedule.js   # AI scheduling algorithm
@@ -853,10 +921,15 @@ edumite/
 ├── 📖 Documentation
 │   ├── README.md                 # This file
 │   ├── SETUP.md                  # Installation guide
-│   └── COLOR_REFACTOR.md         # Design system documentation
+│   ├── COLOR_REFACTOR.md         # Design system documentation
+│   ├── EXAM_COUNTDOWN_SETUP.md   # Exam notification system guide
+│   └── CALENDAR_INTEGRATION_SUMMARY.md # Calendar feature details
 │
 └── 🗄️ Database
-    └── supabase-schema.sql       # PostgreSQL schema + RLS policies
+    ├── supabase-schema.sql       # PostgreSQL schema + RLS policies
+    └── supabase/
+        └── migrations/
+            └── 001_exam_notifications.sql # Exam schedules table + RLS
 ```
 
 ---
@@ -1365,6 +1438,9 @@ CMD ["npm", "run", "preview"]
 - [x] ✅ Focus Room with Pomodoro + audio
 - [x] ✅ Study VR with FrameVR
 - [x] ✅ Google Classroom integration
+- [x] ✅ Exam countdown notification system (global bell + calendar integration)
+- [x] ✅ Automatic daily midnight refresh for countdowns
+- [x] ✅ Real-time Supabase subscriptions for exam updates
 - [ ] 🔄 Mobile app (React Native)
 - [ ] 🔄 Real-time collaboration (WebRTC)
 - [ ] 🔄 Offline mode (PWA)
@@ -1372,6 +1448,8 @@ CMD ["npm", "run", "preview"]
 - [ ] 🔄 Certificate generation
 - [ ] 🔄 Peer review system
 - [ ] 🔄 Advanced analytics with ML insights
+- [ ] 🔄 Email/push notifications for exam reminders
+- [ ] 🔄 Export exam calendar to iCal format
 
 ---
 

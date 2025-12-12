@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import GridScan from '@/components/3D/GridScan';
 import { ThreeDFallback } from '@/components/3D/ThreeDFallback';
+import { ExamCountdownWidget } from '@/components/ExamCountdownWidget';
 import { MOCK_ANALYTICS, MOCK_ACTIVITY_LOG, MOCK_TASKS, USE_MOCK_DATA, MOCK_GAME_LEADERBOARD } from '@/mocks';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { useState, useEffect } from 'react';
@@ -127,11 +128,21 @@ export default function DashboardGold() {
           ))}
         </div>
 
-        {/* QUICK ACTIONS */}
+        {/* EXAM COUNTDOWN WIDGET */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
+          className="mb-12"
+        >
+          <ExamCountdownWidget />
+        </motion.div>
+
+        {/* QUICK ACTIONS */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
           className="mb-12"
         >
           <h2 className="text-3xl font-black uppercase text-gold mb-6 flex items-center gap-3">

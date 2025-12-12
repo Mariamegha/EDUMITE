@@ -5,6 +5,7 @@ import { signOut } from '@/services/authService';
 import GooeyNav from '@/components/GooeyNav';
 import { useThemeStore } from '@/store/themeStore';
 import StaggeredMenu from '@/components/StaggeredMenu';
+import { ExamNotificationBell } from '@/components/ExamNotificationBell';
 import { Menu } from 'lucide-react';
 import { useState } from 'react';
 
@@ -47,6 +48,9 @@ export default function NavbarGold() {
 
           {/* AUTH BUTTONS */}
           <div className="flex items-center gap-4">
+            {/* Exam Notification Bell - Only for authenticated users */}
+            {isAuthenticated && <ExamNotificationBell />}
+            
             {isAuthenticated && (
               <Button 
                 variant="outline" 

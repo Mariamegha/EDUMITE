@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { ExamEntry } from '@/mocks/studyPlanner';
+import { useExamCountdown } from '@/hooks/useExamCountdown';
+import { ExamSchedule } from '@/types/examNotifications';
 
 interface ExamCalendarProps {
   exams: ExamEntry[];
@@ -10,7 +12,36 @@ interface ExamCalendarProps {
 }
 
 export default function ExamCalendar({ exams, onDateSelect, selectedDate }: ExamCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date(2024, 11, 1)); // December 2024
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const { allExams: dbExams } = useExamCountdown();
+  
+  // Merge database exams with mock exams (database exams take priority)
+  const [mergedExams, setMergedExams] = useState<(ExamEntry | ExamSchedule)[]>(exams);
+
+  useEffect(() => {
+    if (dbExams && dbExams.length > 0) {
+      // Convert database exams to ExamEntry format and merge
+      const convertedDbExams = dbExams.map((exam, index) => ({
+        id: exam.id || `db-${index}`,
+        subject: exam.subject || exam.exam_name,
+        date: exam.exam_date,
+        time: exam.exam_time || '',
+        duration: exam.duration_minutes ? `${exam.duration_minutes} min` : '',
+        location: exam.location || '',
+        color: exam.color || '#C9B458',
+        topics: exam.topics || [],
+      }));
+      
+      // Combine with mock exams, prioritizing database exams
+      const combined = [...convertedDbExams, ...exams.filter(
+        mockExam => !dbExams.some(dbExam => dbExam.exam_date === mockExam.date)
+      )];
+      
+      setMergedExams(combined);
+    } else {
+      setMergedExams(exams);
+    }
+  }, [dbExams, exams]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -27,7 +58,7 @@ export default function ExamCalendar({ exams, onDateSelect, selectedDate }: Exam
 
   const getExamForDate = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return exams.find(exam => exam.date === dateStr);
+    return mergedExams.find(exam => exam.date === dateStr);
   };
 
   const isToday = (day: number) => {
@@ -150,16 +181,18 @@ export default function ExamCalendar({ exams, onDateSelect, selectedDate }: Exam
       <div className="mt-6 pt-4 border-t border-white/10">
         <p className="text-xs text-gray-400 mb-3 font-semibold">EXAM SUBJECTS</p>
         <div className="flex flex-wrap gap-2">
-          {exams.map(exam => (
+          {mergedExams.map((exam, index) => (
             <div
-              key={exam.id}
+              key={exam.id || `exam-${index}`}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10"
             >
               <div
                 className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: exam.color }}
+                style={{ backgroundColor: exam.color || '#C9B458' }}
               />
-              <span className="text-xs font-medium text-white">{exam.subject}</span>
+              <span className="text-xs font-medium text-white">
+                {'subject' in exam ? exam.subject : exam.exam_name}
+              </span>
             </div>
           ))}
         </div>
