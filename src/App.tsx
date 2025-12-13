@@ -19,6 +19,7 @@ import { supabase } from "@/lib/supabase";
 import { Suspense } from "react";
 import { NAVIGATION_CLUSTERS } from "@/config/navigationClusters";
 import { useNavigationStore } from "@/store/navigationStore";
+import { ClusterType } from "@/types/navigation";
 
 import LandingGold from "./pages/LandingGold";
 import Login from "./pages/Login";
@@ -56,6 +57,7 @@ import UnifiedOS from "./pages/UnifiedOS";
 import CreateSpace from "./pages/CreateSpace";
 import WorkspaceLayout from "./pages/WorkspaceLayout";
 import WorkspaceView from "./pages/WorkspaceView";
+import ClassroomWorkspace from "./pages/ClassroomWorkspace";
 
 const queryClient = new QueryClient();
 
@@ -197,7 +199,7 @@ function ClusterRouteHandler() {
   
   useEffect(() => {
     if (clusterId) {
-      setActiveCluster(clusterId as any);
+      setActiveCluster(clusterId as ClusterType);
       setIsInCluster(true);
     }
     return () => {
@@ -408,6 +410,16 @@ function ConditionalLayout() {
                       <ErrorBoundary>
                         <ProtectedRoute>
                           <WorkspaceView />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/classroom-workspace"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <ClassroomWorkspace />
                         </ProtectedRoute>
                       </ErrorBoundary>
                     }

@@ -16,6 +16,8 @@ import { ThreeDFallback } from '@/components/3D/ThreeDFallback';
 import IDE from '@/components/IDE';
 import { MentorChat } from '@/components/MentorChat';
 import { TranslatedText } from '@/components/TranslatedText';
+import { AITutorPanel, AITutorTrigger } from '@/components/AITutorPanel';
+import { ToolAIHelper } from '@/components/ToolAIHelper';
 
 type ToolType = 
   | 'code-editor' 
@@ -31,7 +33,9 @@ type ToolType =
   | 'file-explorer'
   | 'browser'
   | 'roadmap'
-  | 'institution-tasks';
+  | 'institution-tasks'
+  | 'saved-notes'
+  | 'session-notes';
 
 interface Tool {
   id: string;
@@ -86,32 +90,32 @@ interface WorkspaceConfig {
 const WORKSPACE_CONFIGS: WorkspaceConfig = {
   frontend: {
     name: 'Frontend Development',
-    defaultTools: ['code-editor', 'browser', 'roadmap', 'institution-tasks'],
-    availableTools: ['code-editor', 'browser', 'ai-tutor', 'documentation', 'notes', 'terminal', 'file-explorer', 'whiteboard', 'roadmap', 'institution-tasks'],
+    defaultTools: ['roadmap'],
+    availableTools: ['code-editor', 'browser', 'ai-tutor', 'documentation', 'notes', 'terminal', 'file-explorer', 'whiteboard', 'institution-tasks', 'video-player', 'saved-notes'],
     theme: 'gold',
   },
   backend: {
     name: 'Backend Development',
-    defaultTools: ['code-editor', 'terminal', 'roadmap', 'institution-tasks'],
-    availableTools: ['code-editor', 'terminal', 'database-viewer', 'api-tester', 'ai-tutor', 'documentation', 'notes', 'file-explorer', 'roadmap', 'institution-tasks'],
+    defaultTools: ['roadmap'],
+    availableTools: ['code-editor', 'terminal', 'database-viewer', 'api-tester', 'ai-tutor', 'documentation', 'notes', 'file-explorer', 'institution-tasks', 'video-player', 'saved-notes'],
     theme: 'pink',
   },
   ml: {
     name: 'Machine Learning',
-    defaultTools: ['code-editor', 'ai-tutor', 'roadmap', 'institution-tasks'],
-    availableTools: ['code-editor', 'ai-tutor', 'calculator', 'notes', 'terminal', 'documentation', 'whiteboard', 'file-explorer', 'roadmap', 'institution-tasks'],
+    defaultTools: ['roadmap'],
+    availableTools: ['code-editor', 'ai-tutor', 'calculator', 'notes', 'terminal', 'documentation', 'whiteboard', 'file-explorer', 'institution-tasks', 'video-player', 'saved-notes'],
     theme: 'blue',
   },
   datascience: {
     name: 'Data Science',
-    defaultTools: ['code-editor', 'calculator', 'roadmap', 'institution-tasks'],
-    availableTools: ['code-editor', 'calculator', 'database-viewer', 'whiteboard', 'ai-tutor', 'notes', 'terminal', 'documentation', 'roadmap', 'institution-tasks'],
+    defaultTools: ['roadmap'],
+    availableTools: ['code-editor', 'calculator', 'database-viewer', 'whiteboard', 'ai-tutor', 'notes', 'terminal', 'documentation', 'institution-tasks', 'video-player', 'saved-notes'],
     theme: 'gold',
   },
   cybersecurity: {
     name: 'Cybersecurity',
-    defaultTools: ['terminal', 'code-editor', 'roadmap', 'institution-tasks'],
-    availableTools: ['terminal', 'code-editor', 'browser', 'notes', 'ai-tutor', 'documentation', 'database-viewer', 'file-explorer', 'roadmap', 'institution-tasks'],
+    defaultTools: ['roadmap'],
+    availableTools: ['terminal', 'code-editor', 'browser', 'notes', 'ai-tutor', 'documentation', 'database-viewer', 'file-explorer', 'institution-tasks', 'video-player', 'saved-notes'],
     theme: 'pink',
   },
 };
@@ -131,6 +135,8 @@ const TOOL_METADATA = {
   'browser': { icon: <Globe />, title: 'Browser', color: 'blue' },
   'roadmap': { icon: <Target />, title: 'Roadmap', color: 'gold' },
   'institution-tasks': { icon: <CheckCircle />, title: 'Institution Tasks', color: 'pink' },
+  'saved-notes': { icon: <Save />, title: 'Saved Notes', color: 'gold' },
+  'session-notes': { icon: <FileText />, title: 'Session Notes', color: 'pink' },
 };
 
 export default function WorkspaceView() {
@@ -143,6 +149,28 @@ export default function WorkspaceView() {
   const [showAddTool, setShowAddTool] = useState(false);
   const [showAddWorkspace, setShowAddWorkspace] = useState(false);
   const [layoutMode, setLayoutMode] = useState<'grid' | 'split' | 'freeform'>('grid');
+  
+  // Session tracking state
+  const [sessionActivities, setSessionActivities] = useState<Record<string, {
+    toolsUsed: string[];
+    prompts: string[];
+    activities: string[];
+    timeSpent: number;
+    lastUpdated: Date;
+  }>>({});
+  
+  const [savedNotes, setSavedNotes] = useState<{
+    id: string;
+    sessionId: string;
+    sessionTitle: string;
+    content: string;
+    savedAt: Date;
+  }[]>([]);
+  
+  const [sessionNotesContent, setSessionNotesContent] = useState<Record<string, string>>({});
+  
+  // AI Tutor state (non-intrusive)
+  const [showAITutor, setShowAITutor] = useState(false);
   
   const activeTab = workspaceTabs.find(tab => tab.id === activeTabId);
   const tools = activeTab?.tools || [];
@@ -267,14 +295,60 @@ export default function WorkspaceView() {
     setWorkspaceTabs(updatedTabs);
   };
 
+  // Session Activity Tracking
+  const trackActivity = (sessionId: string, activity: string, toolUsed?: string, prompt?: string) => {
+    setSessionActivities(prev => {
+      const current = prev[sessionId] || {
+        toolsUsed: [],
+        prompts: [],
+        activities: [],
+        timeSpent: 0,
+        lastUpdated: new Date(),
+      };
+      
+      return {
+        ...prev,
+        [sessionId]: {
+          ...current,
+          toolsUsed: toolUsed && !current.toolsUsed.includes(toolUsed) 
+            ? [...current.toolsUsed, toolUsed] 
+            : current.toolsUsed,
+          prompts: prompt ? [...current.prompts, prompt] : current.prompts,
+          activities: [...current.activities, `${new Date().toLocaleTimeString()}: ${activity}`],
+          lastUpdated: new Date(),
+        },
+      };
+    });
+  };
+
+  // Save Note Function
+  const saveNote = (sessionId: string, sessionTitle: string, content: string) => {
+    const newNote = {
+      id: `note-${Date.now()}`,
+      sessionId,
+      sessionTitle,
+      content,
+      savedAt: new Date(),
+    };
+    setSavedNotes(prev => [...prev, newNote]);
+    trackActivity(sessionId, `Saved note: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`);
+  };
+
   const maximizedTool = tools.find(t => t.isMaximized);
 
   const renderToolContent = (tool: Tool) => {
     switch (tool.type) {
       case 'code-editor':
         return (
-          <div className="h-full bg-black/90 rounded-lg overflow-hidden">
+          <div className="h-full bg-black/90 rounded-lg overflow-hidden relative">
             <IDE courseId="workspace" moduleNumber={1} />
+            {workspaceType && (
+              <ToolAIHelper 
+                toolName="Code Editor" 
+                toolType="code-editor" 
+                workspaceType={workspaceType} 
+              />
+            )}
           </div>
         );
       case 'ai-tutor':
@@ -295,7 +369,7 @@ export default function WorkspaceView() {
         );
       case 'documentation':
         return (
-          <div className="h-full bg-obsidian/90 rounded-lg p-6 overflow-y-auto">
+          <div className="h-full bg-obsidian/90 rounded-lg p-6 overflow-y-auto relative">
             <h3 className="text-2xl font-black text-gold mb-4">📚 Documentation</h3>
             <div className="space-y-4 text-white/80">
               <div className="p-4 border-2 border-gold/30 rounded bg-black/30">
@@ -311,6 +385,13 @@ export default function WorkspaceView() {
                 <p>Deep dive into complex concepts</p>
               </div>
             </div>
+            {workspaceType && (
+              <ToolAIHelper 
+                toolName="Documentation" 
+                toolType="documentation" 
+                workspaceType={workspaceType} 
+              />
+            )}
           </div>
         );
       case 'notes':
@@ -324,7 +405,7 @@ export default function WorkspaceView() {
         );
       case 'terminal':
         return (
-          <div className="h-full bg-black rounded-lg p-4 font-mono text-green-400">
+          <div className="h-full bg-black rounded-lg p-4 font-mono text-green-400 relative">
             <div className="mb-2">$ Welcome to {config.name} Terminal</div>
             <div className="mb-2 text-green-300">$ Type commands here...</div>
             <div className="flex items-center">
@@ -335,11 +416,18 @@ export default function WorkspaceView() {
                 placeholder="Enter command..."
               />
             </div>
+            {workspaceType && (
+              <ToolAIHelper 
+                toolName="Terminal" 
+                toolType="terminal" 
+                workspaceType={workspaceType} 
+              />
+            )}
           </div>
         );
       case 'database-viewer':
         return (
-          <div className="h-full bg-obsidian/90 rounded-lg p-6 overflow-y-auto">
+          <div className="h-full bg-obsidian/90 rounded-lg p-6 overflow-y-auto relative">
             <h3 className="text-2xl font-black text-pink mb-4">🗄️ Database Viewer</h3>
             <div className="space-y-2">
               <div className="p-3 bg-black/50 border-2 border-pink/30 rounded">
@@ -351,11 +439,18 @@ export default function WorkspaceView() {
                 <div className="text-xs text-white/60 mt-1">543 records</div>
               </div>
             </div>
+            {workspaceType && (
+              <ToolAIHelper 
+                toolName="Database Viewer" 
+                toolType="database-viewer" 
+                workspaceType={workspaceType} 
+              />
+            )}
           </div>
         );
       case 'api-tester':
         return (
-          <div className="h-full bg-obsidian/90 rounded-lg p-6">
+          <div className="h-full bg-obsidian/90 rounded-lg p-6 relative">
             <h3 className="text-2xl font-black text-gold mb-4">⚡ API Tester</h3>
             <div className="space-y-4">
               <div className="flex gap-2">
@@ -378,6 +473,13 @@ export default function WorkspaceView() {
                 Response will appear here...
               </div>
             </div>
+            {workspaceType && (
+              <ToolAIHelper 
+                toolName="API Tester" 
+                toolType="api-tester" 
+                workspaceType={workspaceType} 
+              />
+            )}
           </div>
         );
       case 'whiteboard':
@@ -1457,6 +1559,13 @@ export default function WorkspaceView() {
                               <Button
                                 size="sm"
                                 className="bg-gold text-black font-bold hover:bg-gold/80 text-xs"
+                                onClick={() => {
+                                  addTool('session-notes', {
+                                    sessionId: `session-${phaseIndex}-${sessionIndex}`,
+                                    sessionTitle: session.title,
+                                    phase: phase.phase,
+                                  });
+                                }}
                               >
                                 <FileText className="w-3 h-3 mr-1" />
                                 My Notes
@@ -1567,6 +1676,196 @@ export default function WorkspaceView() {
             </div>
           </div>
         );
+      
+      case 'session-notes': {
+        const sessionId = tool.data?.sessionId as string || '';
+        const sessionTitle = tool.data?.sessionTitle as string || 'Session Notes';
+        const phase = tool.data?.phase as string || '';
+        const noteContent = sessionNotesContent[sessionId] || '';
+        const activities = sessionActivities[sessionId];
+
+        return (
+          <div className="h-full bg-obsidian/90 rounded-lg overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="border-b-2 border-pink/30 p-4 bg-black/30">
+              <h3 className="text-lg font-black text-pink mb-1">{sessionTitle}</h3>
+              <p className="text-xs text-white/60 font-bold">{phase}</p>
+            </div>
+
+            {/* Activity Tracker */}
+            <div className="border-b-2 border-gold/20 p-4 bg-black/20 space-y-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-pink/10 border border-pink/30 rounded p-2">
+                  <p className="text-xs text-pink font-bold mb-1">Tools Used</p>
+                  <div className="flex flex-wrap gap-1">
+                    {activities?.toolsUsed.length ? activities.toolsUsed.map((tool, i) => (
+                      <Badge key={i} className="bg-pink/20 text-pink text-xs">{tool}</Badge>
+                    )) : <span className="text-xs text-white/40">None yet</span>}
+                  </div>
+                </div>
+                <div className="bg-gold/10 border border-gold/30 rounded p-2">
+                  <p className="text-xs text-gold font-bold mb-1">Prompts/Queries</p>
+                  <p className="text-lg font-black text-gold">{activities?.prompts.length || 0}</p>
+                </div>
+                <div className="bg-blue/10 border border-blue/30 rounded p-2">
+                  <p className="text-xs text-blue font-bold mb-1">Activities</p>
+                  <p className="text-lg font-black text-blue">{activities?.activities.length || 0}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes Editor */}
+            <div className="flex-1 p-4 overflow-y-auto">
+              <label className="text-sm font-bold text-gold mb-2 block">Your Notes</label>
+              <textarea
+                value={noteContent}
+                onChange={(e) => setSessionNotesContent(prev => ({ ...prev, [sessionId]: e.target.value }))}
+                placeholder="Write your notes here... What did you learn? Key concepts? Questions?"
+                className="w-full h-48 bg-black/50 border-2 border-gold/30 rounded-lg p-3 text-white placeholder-white/30 focus:border-gold focus:outline-none resize-none font-mono text-sm"
+              />
+              
+              <div className="mt-4">
+                <label className="text-sm font-bold text-pink mb-2 block">Log Activity</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="What tool did you use?"
+                    className="flex-1 bg-black/50 border-2 border-pink/30 rounded-lg px-3 py-2 text-white placeholder-white/30 focus:border-pink focus:outline-none text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && e.currentTarget.value) {
+                        trackActivity(sessionId, `Used tool: ${e.currentTarget.value}`, e.currentTarget.value);
+                        e.currentTarget.value = '';
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    className="bg-pink text-white font-bold"
+                    onClick={() => {
+                      const input = document.querySelector('input[placeholder="What tool did you use?"]') as HTMLInputElement;
+                      if (input?.value) {
+                        trackActivity(sessionId, `Used tool: ${input.value}`, input.value);
+                        input.value = '';
+                      }
+                    }}
+                  >
+                    Log Tool
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-3">
+                <input
+                  type="text"
+                  placeholder="Add a prompt or query you tried..."
+                  className="w-full bg-black/50 border-2 border-blue/30 rounded-lg px-3 py-2 text-white placeholder-white/30 focus:border-blue focus:outline-none text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.currentTarget.value) {
+                      trackActivity(sessionId, `Tried prompt: ${e.currentTarget.value}`, undefined, e.currentTarget.value);
+                      e.currentTarget.value = '';
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Activity Log */}
+            <div className="border-t-2 border-white/10 p-4 bg-black/20 max-h-32 overflow-y-auto">
+              <p className="text-xs font-bold text-white/60 mb-2">Activity Timeline</p>
+              <div className="space-y-1">
+                {activities?.activities.length ? activities.activities.slice(-5).reverse().map((activity, i) => (
+                  <p key={i} className="text-xs text-white/70 font-mono">{activity}</p>
+                )) : (
+                  <p className="text-xs text-white/40">No activities yet</p>
+                )}
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="border-t-2 border-gold/30 p-4 bg-black/30">
+              <Button
+                className="w-full bg-gold text-black font-black hover:bg-gold/80"
+                onClick={() => {
+                  if (noteContent.trim()) {
+                    saveNote(sessionId, sessionTitle, noteContent);
+                    setSessionNotesContent(prev => ({ ...prev, [sessionId]: '' }));
+                    alert('Note saved! Check "Saved Notes" tool.');
+                  }
+                }}
+                disabled={!noteContent.trim()}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Note
+              </Button>
+            </div>
+          </div>
+        );
+      }
+
+      case 'saved-notes':
+        return (
+          <div className="h-full bg-obsidian/90 rounded-lg overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="border-b-2 border-gold/30 p-4 bg-black/30">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-black text-gold flex items-center gap-2">
+                  <Save className="w-6 h-6" />
+                  Saved Notes
+                </h3>
+                <Badge className="bg-gold text-black font-black">
+                  {savedNotes.length} NOTES
+                </Badge>
+              </div>
+            </div>
+
+            {/* Notes List */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3">
+              {savedNotes.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-center">
+                  <div>
+                    <FileText className="w-16 h-16 text-white/20 mx-auto mb-4" />
+                    <p className="text-white/50 font-bold">No saved notes yet</p>
+                    <p className="text-white/30 text-sm mt-2">Open a session and save your notes!</p>
+                  </div>
+                </div>
+              ) : (
+                savedNotes.slice().reverse().map((note) => (
+                  <motion.div
+                    key={note.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="border-2 border-gold/30 rounded-lg p-4 bg-black/30 hover:border-gold transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <h4 className="font-bold text-white mb-1">{note.sessionTitle}</h4>
+                        <p className="text-xs text-white/50">
+                          {new Date(note.savedAt).toLocaleString()}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                        onClick={() => {
+                          setSavedNotes(prev => prev.filter(n => n.id !== note.id));
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="bg-black/40 rounded p-3 border border-white/10">
+                      <p className="text-sm text-white/80 whitespace-pre-wrap font-mono">
+                        {note.content}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </div>
+        );
+      
       default:
         return (
           <div className="h-full bg-obsidian/90 rounded-lg flex items-center justify-center text-white/50">
@@ -1642,6 +1941,14 @@ export default function WorkspaceView() {
                     <Layers className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/* AI Tutor Trigger Button (Non-intrusive) */}
+                <AITutorTrigger
+                  onClick={() => setShowAITutor(true)}
+                  variant="button"
+                  themeColor={config.theme}
+                  label="AI Tutor"
+                />
 
                 <Button
                   onClick={() => setShowAddTool(true)}
@@ -1955,6 +2262,17 @@ export default function WorkspaceView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Global AI Tutor Panel (Workspace-level help) */}
+      {showAITutor && workspaceType && (
+        <AITutorPanel
+          workspaceType={workspaceType}
+          sessionContext={activeTab ? `Current tools: ${tools.map(t => t.title).join(', ')}` : undefined}
+          position="side"
+          themeColor={config.theme}
+          onClose={() => setShowAITutor(false)}
+        />
+      )}
     </div>
   );
 }

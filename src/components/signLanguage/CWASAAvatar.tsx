@@ -5,7 +5,7 @@
  * Uses the real 3D signing avatars with SiGML files from public folder
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Play, Pause, RotateCw, User } from 'lucide-react';
 
 interface CWASAAvatarProps {
@@ -27,19 +27,12 @@ interface CWASAAvatarProps {
   onStart?: () => void;
 }
 
-declare global {
-  interface Window {
-    CWASA?: {
-      init: () => void;
-      playSiGMLURL: (url: string) => void;
-      playSiGMLText: (text: string) => void;
-      stopSiGML: () => void;
-      getLogger: (name: string, level: number) => any;
-    };
-    cwasa?: any;
-    SiGMLURL?: any;
-    AvatarConfig?: any;
-  }
+interface CWASAInstance {
+  init: (config?: unknown) => void;
+  playSiGMLURL: (url: string) => void;
+  playSiGMLText: (text: string) => void;
+  stopSiGML: () => void;
+  getLogger: (name: string, level: number) => unknown;
 }
 
 export function CWASAAvatar({
@@ -120,7 +113,7 @@ export function CWASAAvatar({
     console.log('[CWASA Lesson] Container created');
     
     // Check if already initialized
-    const alreadyInit = (window as any).tuavatarLoaded;
+    const alreadyInit = window.tuavatarLoaded;
     console.log('[CWASA Lesson] Already initialized:', alreadyInit);
     
     if (!alreadyInit) {
@@ -135,11 +128,11 @@ export function CWASAAvatar({
       };
       
       console.log('[CWASA Lesson] Initializing CWASA with config:', initCfg);
-      (window as any).tuavatarLoaded = false;
-      (window as any).playerAvailableToPlay = true;
+      window.tuavatarLoaded = false;
+      window.playerAvailableToPlay = true;
       
       try {
-        window.CWASA!.init(initCfg);
+        window.CWASA!.init();
         console.log('[CWASA Lesson] Init called successfully');
       } catch (err) {
         console.error('[CWASA Lesson] Init error:', err);
@@ -167,7 +160,7 @@ export function CWASAAvatar({
       
       if (canvas || iframe || hasContent) {
         clearInterval(checkInterval);
-        (window as any).tuavatarLoaded = true;
+        window.tuavatarLoaded = true;
         console.log('[CWASA Lesson] Avatar rendered!');
         setIsLoading(false);
       } else if (attempts >= 20) {
@@ -183,7 +176,7 @@ export function CWASAAvatar({
   }, [cwasaReady, avatar]);
 
   // Play text/SiGML files
-  const playSigning = async () => {
+  const playSigning = useCallback(async () => {
     if (!cwasaReady || !window.CWASA) {
       console.warn('[CWASA] Not ready for playback');
       return;
@@ -238,14 +231,14 @@ export function CWASAAvatar({
       setIsPlaying(false);
       setError('Playback failed');
     }
-  };
+  }, [cwasaReady, sigmlFiles, text, speed, onStart, onComplete]);
 
   // Auto-play when text/files change
   useEffect(() => {
     if (autoPlay && cwasaReady && (text || sigmlFiles)) {
       playSigning();
     }
-  }, [text, sigmlFiles, autoPlay, cwasaReady]);
+  }, [text, sigmlFiles, autoPlay, cwasaReady, playSigning]);
 
   // Handle speed change
   useEffect(() => {

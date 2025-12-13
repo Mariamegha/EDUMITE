@@ -16,24 +16,25 @@ export default function ExamCalendar({ exams, onDateSelect, selectedDate }: Exam
   const { allExams: dbExams } = useExamCountdown();
   
   // Merge database exams with mock exams (database exams take priority)
-  const [mergedExams, setMergedExams] = useState<(ExamEntry | ExamSchedule)[]>(exams);
+  const [mergedExams, setMergedExams] = useState<ExamEntry[]>(exams);
 
   useEffect(() => {
     if (dbExams && dbExams.length > 0) {
       // Convert database exams to ExamEntry format and merge
-      const convertedDbExams = dbExams.map((exam, index) => ({
+      const convertedDbExams: ExamEntry[] = dbExams.map((exam, index) => ({
         id: exam.id || `db-${index}`,
         subject: exam.subject || exam.exam_name,
         date: exam.exam_date,
         time: exam.exam_time || '',
-        duration: exam.duration_minutes ? `${exam.duration_minutes} min` : '',
+        duration: exam.duration_minutes || 0,
         location: exam.location || '',
         color: exam.color || '#C9B458',
         topics: exam.topics || [],
+        importance: 'high' as const,
       }));
       
       // Combine with mock exams, prioritizing database exams
-      const combined = [...convertedDbExams, ...exams.filter(
+      const combined: ExamEntry[] = [...convertedDbExams, ...exams.filter(
         mockExam => !dbExams.some(dbExam => dbExam.exam_date === mockExam.date)
       )];
       
@@ -191,7 +192,7 @@ export default function ExamCalendar({ exams, onDateSelect, selectedDate }: Exam
                 style={{ backgroundColor: exam.color || '#C9B458' }}
               />
               <span className="text-xs font-medium text-white">
-                {'subject' in exam ? exam.subject : exam.exam_name}
+                {exam.subject}
               </span>
             </div>
           ))}

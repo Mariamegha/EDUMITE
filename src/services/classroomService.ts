@@ -66,7 +66,7 @@ const buildSubmissionQuery = () => SUBMISSION_STATES.map((state) => `states=${st
 export const fetchCourseWork = async (token: string, courseId: string) => {
   const data = await classroomFetch<{ courseWork?: any[] }>(
     token,
-    `/courses/${courseId}/courseWork?orderBy=DUE_DATE&courseWorkStates=PUBLISHED`,
+    `/courses/${courseId}/courseWork?orderBy=updateTime desc&courseWorkStates=PUBLISHED`,
   );
   return data.courseWork || [];
 };
@@ -78,6 +78,14 @@ export const fetchStudentSubmissions = async (token: string, courseId: string) =
     `/courses/${courseId}/courseWork/-/studentSubmissions?${query}`,
   );
   return data.studentSubmissions || [];
+};
+
+export const fetchCourseMaterials = async (token: string, courseId: string) => {
+  const data = await classroomFetch<{ courseWorkMaterial?: any[] }>(
+    token,
+    `/courses/${courseId}/courseWorkMaterials?orderBy=updateTime desc`,
+  );
+  return data.courseWorkMaterial || [];
 };
 
 export const getClassroomAssignments = async (

@@ -3,13 +3,15 @@ import type {
   ClassroomAssignment,
   ClassroomAssignmentBuckets,
   ClassroomCourse,
+  ClassroomMaterial,
 } from '@/types/classroom';
-import { fetchGoogleProfile, getClassroomAssignments } from '@/services/classroomService';
+import { fetchGoogleProfile, getClassroomAssignments, fetchCourseMaterials } from '@/services/classroomService';
 
 const SCOPES = [
   'https://www.googleapis.com/auth/classroom.courses.readonly',
   'https://www.googleapis.com/auth/classroom.coursework.me',
   'https://www.googleapis.com/auth/classroom.coursework.me.readonly',
+  'https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
 ].join(' ');
@@ -20,6 +22,7 @@ interface UseGoogleClassroomResult {
   assignments: ClassroomAssignmentBuckets;
   flatAssignments: ClassroomAssignment[];
   courses: ClassroomCourse[];
+  materials: Record<string, ClassroomMaterial[]>;
   loading: boolean;
   error: string | null;
   userProfile: { name?: string; email?: string; picture?: string } | null;
@@ -35,17 +38,44 @@ export const useGoogleClassroom = (): UseGoogleClassroomResult => {
   const proxyUrl = import.meta.env.VITE_CLASSROOM_PROXY_URL;
   const tokenClientRef = useRef<any>(null);
   const scriptLoadedRef = useRef(false);
+  const isInitializedRef = useRef(false);
+
+  // Load persisted state from localStorage on mount
+  const loadPersistedState = () => {
+    try {
+      const stored = localStorage.getItem('googleClassroomState');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return {
+          hasConnection: parsed.hasConnection || false,
+          assignments: parsed.assignments || DEFAULT_BUCKETS,
+          flatAssignments: parsed.flatAssignments || [],
+          courses: parsed.courses || [],
+          materials: parsed.materials || {},
+          userProfile: parsed.userProfile || null,
+          lastSyncedAt: parsed.lastSyncedAt || null,
+        };
+      }
+    } catch (err) {
+      console.error('Failed to load persisted state:', err);
+    }
+    return null;
+  };
+
+  const persistedState = loadPersistedState();
 
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [assignments, setAssignments] = useState<ClassroomAssignmentBuckets>(DEFAULT_BUCKETS);
-  const [flatAssignments, setFlatAssignments] = useState<ClassroomAssignment[]>([]);
-  const [courses, setCourses] = useState<ClassroomCourse[]>([]);
+  const [hasConnection, setHasConnection] = useState<boolean>(persistedState?.hasConnection || false);
+  const [assignments, setAssignments] = useState<ClassroomAssignmentBuckets>(persistedState?.assignments || DEFAULT_BUCKETS);
+  const [flatAssignments, setFlatAssignments] = useState<ClassroomAssignment[]>(persistedState?.flatAssignments || []);
+  const [courses, setCourses] = useState<ClassroomCourse[]>(persistedState?.courses || []);
+  const [materials, setMaterials] = useState<Record<string, ClassroomMaterial[]>>(persistedState?.materials || {});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<{ name?: string; email?: string; picture?: string } | null>(
-    null,
+    persistedState?.userProfile || null,
   );
-  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(persistedState?.lastSyncedAt || null);
 
   const ensureGoogleScript = useCallback(() => {
     if (scriptLoadedRef.current) return Promise.resolve();
@@ -128,6 +158,7 @@ export const useGoogleClassroom = (): UseGoogleClassroomResult => {
             return;
           }
           setAccessToken(response.access_token);
+          setHasConnection(true);
           resolve(response.access_token);
         };
 
@@ -141,8 +172,10 @@ export const useGoogleClassroom = (): UseGoogleClassroomResult => {
     setAssignments(DEFAULT_BUCKETS);
     setFlatAssignments([]);
     setCourses([]);
+    setMaterials({});
     setUserProfile(null);
     setLastSyncedAt(null);
+    setHasConnection(false);
   }, []);
 
   const hydrateFromProxy = useCallback(
@@ -162,8 +195,21 @@ export const useGoogleClassroom = (): UseGoogleClassroomResult => {
   );
 
   const syncAssignments = useCallback(
-    async (token?: string) => {
-      const activeToken = token || accessToken || (await requestAccessToken('consent'));
+    async (token?: string, silentRefresh = false) => {
+      let activeToken = token || accessToken;
+      
+      if (!activeToken) {
+        try {
+          activeToken = await requestAccessToken(silentRefresh ? 'none' : 'consent');
+        } catch (err) {
+          if (silentRefresh) {
+            // Silent refresh failed, user needs to reconnect
+            throw new Error('Session expired. Please reconnect.');
+          }
+          throw err;
+        }
+      }
+      
       if (!activeToken) {
         throw new Error('Unable to obtain Google access token');
       }
@@ -190,6 +236,20 @@ export const useGoogleClassroom = (): UseGoogleClassroomResult => {
           setAssignments(buckets);
           setFlatAssignments(fetchedAssignments);
           setCourses(fetchedCourses);
+
+          // Fetch materials for each course
+          const materialsMap: Record<string, ClassroomMaterial[]> = {};
+          await Promise.all(
+            fetchedCourses.map(async (course) => {
+              try {
+                const courseMaterials = await fetchCourseMaterials(activeToken, course.id);
+                materialsMap[course.id] = courseMaterials;
+              } catch (err) {
+                materialsMap[course.id] = [];
+              }
+            })
+          );
+          setMaterials(materialsMap);
         }
 
         const profile = await fetchGoogleProfile(activeToken).catch(() => null);
@@ -235,7 +295,40 @@ export const useGoogleClassroom = (): UseGoogleClassroomResult => {
     }
     setAccessToken(null);
     resetState();
+    localStorage.removeItem('googleClassroomState');
   }, [accessToken, resetState]);
+
+  // Persist state to localStorage whenever relevant data changes
+  useEffect(() => {
+    if (hasConnection || courses.length > 0) {
+      try {
+        const stateToStore = {
+          hasConnection,
+          assignments,
+          flatAssignments,
+          courses,
+          materials,
+          userProfile,
+          lastSyncedAt,
+        };
+        localStorage.setItem('googleClassroomState', JSON.stringify(stateToStore));
+      } catch (err) {
+        console.error('Failed to persist state:', err);
+      }
+    }
+  }, [hasConnection, assignments, flatAssignments, courses, materials, userProfile, lastSyncedAt]);
+
+  // Auto-restore connection on mount
+  useEffect(() => {
+    if (!isInitializedRef.current && hasConnection && courses.length > 0) {
+      isInitializedRef.current = true;
+      // Try to refresh token silently to keep session alive
+      syncAssignments(undefined, true).catch(() => {
+        // Silent refresh failed, but we keep the cached data
+        console.log('Silent token refresh failed, using cached data');
+      });
+    }
+  }, [hasConnection, courses.length, syncAssignments]);
 
   useEffect(() => {
     if (clientId) {
@@ -247,11 +340,12 @@ export const useGoogleClassroom = (): UseGoogleClassroomResult => {
     assignments,
     flatAssignments,
     courses,
+    materials,
     loading,
     error,
     userProfile,
     lastSyncedAt,
-    isConnected: Boolean(accessToken),
+    isConnected: hasConnection,
     connectAndSync,
     refreshAssignments,
     disconnect,

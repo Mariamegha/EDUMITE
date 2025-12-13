@@ -12,7 +12,8 @@ import {
   TrendingUp,
   Target,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Mail
 } from 'lucide-react';
 // TODO [Phase 35]: Integrate AI-powered study plan generation
 // import { useAIContext } from '@/hooks/useAIContext';
@@ -25,6 +26,7 @@ import StudyClusterView from '@/components/smartPlanner/StudyClusterView';
 import WorkloadHeatmap from '@/components/smartPlanner/WorkloadHeatmap';
 import ExamImportModal from '@/components/smartPlanner/ExamImportModal';
 import MicroDeadlineCard from '@/components/smartPlanner/MicroDeadlineCard';
+import { EmailPreferences } from '@/components/smartPlanner/EmailPreferences';
 import { useExamCountdown } from '@/hooks/useExamCountdown';
 import {
   getMockExamTimetable,
@@ -36,6 +38,7 @@ import {
 export default function StudyPlanner() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isEmailPreferencesOpen, setIsEmailPreferencesOpen] = useState(false);
   const [hasImportedExams, setHasImportedExams] = useState(true); // Set to true to show mock data
   
   const { upcomingExams, allCountdowns, nearestExam, hasExamToday, hasExamTomorrow } = useExamCountdown();
@@ -102,6 +105,14 @@ export default function StudyPlanner() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setIsEmailPreferencesOpen(true)}
+                variant="outline"
+                className="border-white/20 hover:bg-white/5 font-semibold"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Email Notifications
+              </Button>
               <Button
                 onClick={() => setIsImportModalOpen(true)}
                 className="bg-gradient-to-r from-[#C9B458] to-[#C27BA0] hover:opacity-90 text-white font-semibold"
@@ -338,6 +349,12 @@ export default function StudyPlanner() {
           </Tabs>
         )}
       </div>
+
+      {/* Email Preferences Modal */}
+      <EmailPreferences 
+        isOpen={isEmailPreferencesOpen} 
+        onClose={() => setIsEmailPreferencesOpen(false)} 
+      />
 
       {/* Import Modal */}
       <ExamImportModal

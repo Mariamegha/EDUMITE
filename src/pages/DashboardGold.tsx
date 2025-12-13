@@ -27,6 +27,7 @@ const ROADMAP_OPTIONS = [
   { id: 'ml', name: 'Machine Learning', icon: <Brain />, color: 'blue' },
   { id: 'datascience', name: 'Data Science', icon: <TrendingUp />, color: 'gold' },
   { id: 'cybersecurity', name: 'Cybersecurity', icon: <Award />, color: 'pink' },
+  { id: 'classroom', name: 'School Worklist', icon: <GraduationCap />, color: 'purple', special: true },
 ];
 
 const INSTITUTION_TASKS = [
@@ -54,7 +55,11 @@ export default function DashboardGold() {
 
   const addWorkspace = (type: string) => {
     // Navigate to workspace route with selected type
-    navigate(`/workspace/${type}`);
+    if (type === 'classroom') {
+      navigate('/classroom-workspace');
+    } else {
+      navigate(`/workspace/${type}`);
+    }
     setShowAddWorkspace(false);
   };
 
@@ -174,19 +179,30 @@ export default function DashboardGold() {
               <h3 className="text-xl font-black text-purple-400 mb-4 uppercase">
                 <TranslatedText text="Choose a Roadmap" />
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                 {ROADMAP_OPTIONS.map((roadmap) => (
                   <motion.button
                     key={roadmap.id}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => addWorkspace(roadmap.id)}
-                    className={`p-4 border-4 border-black bg-${roadmap.color}/20 hover:bg-${roadmap.color}/30 shadow-${roadmap.color}-heavy transition-all`}
+                    className={`p-4 border-4 border-black ${
+                      roadmap.id === 'classroom'
+                        ? 'bg-gradient-to-r from-[#C9B458]/30 to-[#C27BA0]/30 hover:from-[#C9B458]/40 hover:to-[#C27BA0]/40 col-span-2 md:col-span-1'
+                        : `bg-${roadmap.color}/20 hover:bg-${roadmap.color}/30`
+                    } shadow-${roadmap.color}-heavy transition-all relative overflow-hidden`}
                   >
-                    <div className={`text-${roadmap.color} mb-2 flex justify-center`}>
+                    {roadmap.id === 'classroom' && (
+                      <div className="absolute top-1 right-1">
+                        <Badge className="bg-purple-500 text-white text-xs border-2 border-black">
+                          <TranslatedText text="NEW" />
+                        </Badge>
+                      </div>
+                    )}
+                    <div className={`${roadmap.id === 'classroom' ? 'text-transparent bg-clip-text bg-gradient-to-r from-[#C9B458] to-[#C27BA0]' : `text-${roadmap.color}`} mb-2 flex justify-center`}>
                       {roadmap.icon}
                     </div>
-                    <span className={`text-sm font-black text-${roadmap.color} uppercase`}>
+                    <span className={`text-sm font-black ${roadmap.id === 'classroom' ? 'text-transparent bg-clip-text bg-gradient-to-r from-[#C9B458] to-[#C27BA0]' : `text-${roadmap.color}`} uppercase`}>
                       {roadmap.name}
                     </span>
                   </motion.button>
