@@ -48,8 +48,8 @@ const menuItems: MenuItem[] = [
   { path: '/sign-language', label: 'Sign Language', icon: Hand, color: '#FFD700' },
   { path: '/game', label: 'Game Center', icon: Gamepad2, color: '#FF1493' },
   { path: '/focus', label: 'Focus Room', icon: Glasses, color: '#FFD700' },
-  { path: '/study-vr', label: 'VR Study', icon: Glasses, color: '#FFD700' },
-  { path: '/community', label: 'Community', icon: Users, color: '#FF1493' },
+  { path: '/study-vr', label: 'VR Study', icon: Glasses, color: '#FF1493' },
+  { path: '/community', label: 'Community', icon: Users, color: '#FFD700' },
   { path: '/analytics', label: 'Analytics', icon: BarChart3, color: '#FFD700' },
   { path: '/settings', label: 'Settings', icon: Settings, color: '#FF1493' },
 ];

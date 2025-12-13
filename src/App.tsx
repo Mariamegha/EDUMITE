@@ -55,6 +55,7 @@ import SignLanguageTranslator from "./pages/SignLanguageTranslator";
 import UnifiedOS from "./pages/UnifiedOS";
 import CreateSpace from "./pages/CreateSpace";
 import WorkspaceLayout from "./pages/WorkspaceLayout";
+import WorkspaceView from "./pages/WorkspaceView";
 
 const queryClient = new QueryClient();
 
@@ -397,6 +398,16 @@ function ConditionalLayout() {
                       <ErrorBoundary>
                         <ProtectedRoute>
                           <Workspace />
+                        </ProtectedRoute>
+                      </ErrorBoundary>
+                    }
+                  />
+                  <Route
+                    path="/workspace/:workspaceType"
+                    element={
+                      <ErrorBoundary>
+                        <ProtectedRoute>
+                          <WorkspaceView />
                         </ProtectedRoute>
                       </ErrorBoundary>
                     }

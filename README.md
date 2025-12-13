@@ -111,7 +111,7 @@
 
 ### 💡 **Why EDUMITE Stands Out**
 
-**35+ Integrated Features** - Built by **SYLESH PAVENDAN** to solve real educational challenges:
+**40+ Integrated Features** - Built by **SYLESH PAVENDAN** to solve real educational challenges:
 
 ✅ **AI-First**: Gemini Pro powers every feature - tutoring, content generation, assessments  
 ✅ **Inclusive**: Sign language + accessibility features serve 100% of learners  
@@ -120,11 +120,13 @@
 ✅ **Smart**: Auto-scheduling, progress tracking, adaptive difficulty  
 ✅ **Beautiful**: Eye-friendly design tested for 6-10 hour study marathons  
 ✅ **Secure**: Supabase RLS + JWT + OAuth2 with row-level policies  
-✅ **Complete**: From onboarding IQ tests to performance analytics dashboards
+✅ **Complete**: From onboarding IQ tests to performance analytics dashboards  
+✅ **Modular Workspaces**: Multi-domain tabs with 14+ customizable tools  
+✅ **Integrated Learning**: Roadmaps + Institution Tasks in unified workspace environment
 
 ---
 
-## ✨ **Complete Feature Breakdown** (35+ Systems)
+## ✨ **Complete Feature Breakdown** (40+ Systems)
 
 ### 📅 **1. Exam Countdown Notification System**
 
@@ -285,7 +287,71 @@
 - **Smooth Animation** - Framer Motion + Spring physics
 - **File Locations**: `src/components/3D/GridDistortion.tsx`
 
-### 📝 **6. Productivity & Study Tools**
+### 💻 **6. Multi-Domain Workspace System** (`/workspace/:workspaceType`)
+
+#### 🔄 **Browser-Style Workspace Tabs**
+- **Multiple Domains** - Run Frontend, Backend, ML, Data Science, Cybersecurity simultaneously
+- **Tab Management** - Add, remove, switch between workspace tabs
+- **Independent Tools** - Each tab maintains its own tool layout
+- **Tool Count Badges** - Visual indicator of active tools per tab
+- **Persistent State** - Tools remain when switching tabs
+- **Color-Coded Themes** - Gold, Pink, Blue themes per workspace type
+- **File Locations**: `src/pages/WorkspaceView.tsx`
+
+#### 🛠️ **14 Customizable Tools**
+- **Code Editor** - Monaco IDE with syntax highlighting
+- **AI Tutor** - Context-aware chat assistant for workspace domain
+- **Documentation** - Domain-specific documentation browser
+- **Notes** - Rich text editor with autosave
+- **Terminal** - Command line interface simulator
+- **Database Viewer** - Visual database explorer with table views
+- **API Tester** - REST API testing tool (GET/POST/PUT/DELETE)
+- **Whiteboard** - Drawing canvas for brainstorming
+- **Calculator** - Scientific calculator for computations
+- **File Explorer** - Project file browser with tree view
+- **Browser** - In-app web preview for testing
+- **Roadmap** - Interactive personalized learning path
+- **Institution Tasks** - Homework/assignment manager
+- **Video Player** - Educational video playback
+- **File Locations**: `src/pages/WorkspaceView.tsx` (renderToolContent function)
+
+#### 🗺️ **Interactive Personalized Roadmap Tool**
+- **4-Phase Learning Path** - Foundation → Intermediate → Advanced → Expert
+- **Progress Tracking** - Visual indicators (0-100%) per phase
+- **Phase Status** - "DONE" (green), "IN PROGRESS" (gold), "LOCKED" (gray)
+- **Workspace-Specific** - Customized roadmap for each domain
+- **Milestone Breakdown** - 3-4 sub-items per phase
+- **Visual Indicators** - Check marks, progress bars, sparkle icons
+- **File Locations**: `src/pages/WorkspaceView.tsx` (roadmap case in renderToolContent)
+
+#### 📚 **Institution Tasks Tool**
+- **4 Task Types** - EXAM, ASSIGNMENT, PROJECT, LAB
+- **Priority System** - High (red shadow), Medium (orange shadow)
+- **Task Details** - Deadline, institution, status (pending/in-progress)
+- **Action Buttons** - "Start Working" / "Continue" based on status
+- **Visual Alerts** - High priority badge with alert icon
+- **Add from Dashboard** - Click "Add to Workspace" on dashboard tasks
+- **Real-time Updates** - Syncs with dashboard institution worklist
+- **File Locations**: `src/pages/WorkspaceView.tsx` (institution-tasks case), `src/pages/DashboardGold.tsx`
+
+#### 🎯 **Workspace Configuration by Domain**
+- **Frontend Development** - Browser, Code Editor, Roadmap, Institution Tasks
+- **Backend Development** - Terminal, Code Editor, Database Viewer, API Tester
+- **Machine Learning** - Code Editor, AI Tutor, Calculator, Notes
+- **Data Science** - Code Editor, Calculator, Database Viewer, Whiteboard
+- **Cybersecurity** - Terminal, Code Editor, Browser, Notes
+- **Available Tools** - 8-12 tools per workspace type
+- **File Locations**: `src/pages/WorkspaceView.tsx` (WORKSPACE_CONFIGS constant)
+
+#### 📐 **Layout Modes**
+- **Grid Layout** - Automatic 2x2 or 3x3 grid arrangement
+- **Split Layout** - Equal horizontal splits for side-by-side work
+- **Freeform Layout** - Flexible positioning (future feature)
+- **Maximize Tool** - Full-screen any tool with minimize button
+- **Tool Management** - Add/remove tools, close individual tools
+- **File Locations**: `src/pages/WorkspaceView.tsx` (layoutMode state)
+
+### 📝 **7. Productivity & Study Tools**
 
 #### 📓 **Notes Workspace** (`/notes`)
 - **PDF Upload** - Drag-and-drop file support (Supabase Storage)
@@ -311,7 +377,7 @@
 - **Error Display** - Compile/runtime errors shown inline
 - **File Locations**: `src/components/IDE.tsx`, `src/pages/Workspace.tsx`
 
-### 🌍 **7. Accessibility & Inclusion**
+### 🌍 **8. Accessibility & Inclusion**
 
 #### ♿ **Visual Accessibility**
 - **Dyslexia Font** - OpenDyslexic via CDN
@@ -334,7 +400,7 @@
 - **Demo Mode** - Mock translations for testing
 - **File Locations**: `src/components/accessibility/SignAvatar.tsx`, `src/components/accessibility/CaptionBar.tsx`
 
-### 📊 **8. Analytics & Performance**
+### 📊 **9. Analytics & Performance**
 
 #### 📈 **Analytics Dashboard** (`/analytics`)
 - **Study Hours** - Weekly/monthly time tracking
@@ -358,7 +424,7 @@
 - **External Links** - Direct apply buttons
 - **File Locations**: `src/pages/SmartOpportunities.tsx`
 
-### 🤝 **9. Community & Collaboration**
+### 🤝 **10. Community & Collaboration**
 
 #### 💬 **Discussion Forums** (`/community`)
 - **Course Threads** - Topic-specific conversations
@@ -379,6 +445,10 @@
 - **Voice/Video Chat** - WebRTC-powered communication
 - **Screen Sharing** - Present slides/code
 - **Spatial Audio** - 3D positional sound
+- **Mathematics VR Tab** - Dedicated math classroom with interactive tools
+  - **Topic Libraries** - Algebra, Calculus, Geometry, Statistics, Trigonometry
+  - **Collaborative Problem Solving** - Work together on math problems
+  - **3D Graphing Tools** - Visualize complex mathematical concepts
 - **File Locations**: `src/pages/StudyVR.tsx`
 
 ### 🎨 **10. Eye-Friendly Design System**
@@ -855,7 +925,7 @@ edumite/
 │   │   ├── UniverseVisualization.tsx # Audio visualizer
 │   │   └── ...
 │   │
-│   ├── 📄 pages/                 # Route components (15 pages)
+│   ├── 📄 pages/                 # Route components (16 pages)
 │   │   ├── LandingGold.tsx       # Marketing landing page
 │   │   ├── DashboardGold.tsx     # Main dashboard with GridScan
 │   │   ├── AIBot.tsx             # Gemini AI tutor interface
@@ -863,6 +933,7 @@ edumite/
 │   │   ├── Notes.tsx             # Note-taking workspace
 │   │   ├── FocusRoom.tsx         # Pomodoro + ambient audio
 │   │   ├── StudyVR.tsx           # FrameVR collaboration
+│   │   ├── MathematicsHub.tsx    # VR Mathematics Classroom
 │   │   ├── Courses.tsx           # Course discovery + generator
 │   │   ├── CourseDetail.tsx      # Course content viewer
 │   │   ├── Community.tsx         # Forums + study groups
@@ -923,7 +994,8 @@ edumite/
 │   ├── SETUP.md                  # Installation guide
 │   ├── COLOR_REFACTOR.md         # Design system documentation
 │   ├── EXAM_COUNTDOWN_SETUP.md   # Exam notification system guide
-│   └── CALENDAR_INTEGRATION_SUMMARY.md # Calendar feature details
+│   ├── CALENDAR_INTEGRATION_SUMMARY.md # Calendar feature details
+│   └── MATHEMATICS_HUB_GUIDE.md  # VR Mathematics Classroom guide
 │
 └── 🗄️ Database
     ├── supabase-schema.sql       # PostgreSQL schema + RLS policies
@@ -1052,6 +1124,8 @@ npm run build
 | `/settings` | Settings | User preferences |
 
 **All routes except `/`, `/login`, `/register` require authentication.**
+
+**Note**: Math VR is integrated as a tab within `/study-vr` (not a separate route).
 
 ---
 
