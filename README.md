@@ -150,8 +150,6 @@ EDUMITE implements a true "Operating System" for learning:
 - OAuth 2.0 secure authentication
 - localStorage persistence across sessions
 
-[📖 See Full Integration Guide](./GOOGLE_CLASSROOM_INTEGRATION.md)
-
 #### **Intelligent Course System**
 - Browse curated courses
 - Track progress with analytics
@@ -240,8 +238,6 @@ EDUMITE implements a true "Operating System" for learning:
 - Real-time Supabase subscriptions
 - Dashboard countdown widget
 - 7-day upcoming exams banner
-
-[📖 See Exam Countdown Setup Guide](./EXAM_COUNTDOWN_SETUP.md)
 
 #### **Calendar Integration**
 - Exam countdown widgets
@@ -593,12 +589,7 @@ SYLEDUTECH/
 ├── tailwind.config.ts
 ├── tsconfig.json
 ├── vite.config.ts
-├── README.md                        # This file
-├── GOOGLE_CLASSROOM_INTEGRATION.md  # Classroom setup guide
-├── EXAM_COUNTDOWN_SETUP.md          # Exam notification guide
-├── CALENDAR_INTEGRATION_SUMMARY.md  # Calendar feature details
-├── MATHEMATICS_HUB_GUIDE.md         # VR Math classroom guide
-└── UNIFIED_OS.md                    # Workspace architecture
+└── README.md                        # This file
 ```
 
 ---
@@ -887,7 +878,7 @@ const {
 } = useGoogleClassroom();
 ```
 
-[📖 Full Integration Guide](./GOOGLE_CLASSROOM_INTEGRATION.md)
+
 
 ### 2. Exam Countdown System
 
@@ -903,7 +894,7 @@ const {
 - Automatic midnight refresh
 - Real-time Supabase subscriptions
 
-[📖 Full Setup Guide](./EXAM_COUNTDOWN_SETUP.md)
+
 
 ### 3. AI Tutor (Gemini)
 
@@ -1213,11 +1204,7 @@ SOFTWARE.
 - GitHub Issues: [Report a bug](https://github.com/SYLESH-1125/SYLEDUTECH/issues)
 
 **Documentation**:
-- [Google Classroom Integration Guide](./GOOGLE_CLASSROOM_INTEGRATION.md)
-- [Exam Countdown Setup Guide](./EXAM_COUNTDOWN_SETUP.md)
-- [Calendar Integration Summary](./CALENDAR_INTEGRATION_SUMMARY.md)
-- [Mathematics Hub Guide](./MATHEMATICS_HUB_GUIDE.md)
-- [Unified OS Architecture](./UNIFIED_OS.md)
+- Full documentation available in README.md
 
 ---
 
